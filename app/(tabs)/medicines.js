@@ -184,7 +184,7 @@ export default function Medicines() {
                 {/* Medication List */}
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
                     {medications.map((med) => (
-                        <MedicationCard key={med.id} med={med} theme={theme} darkText={darkText} />
+                        <MedicationCard key={med.id} med={med} theme={theme} darkText={darkText} router={router} />
                     ))}
                 </ScrollView>
             </SafeAreaView>
@@ -249,7 +249,7 @@ export default function Medicines() {
     );
 }
 
-function MedicationCard({ med, theme, darkText }) {
+function MedicationCard({ med, theme, darkText, router }) {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Active': return theme.success;
@@ -260,7 +260,13 @@ function MedicationCard({ med, theme, darkText }) {
     };
 
     return (
-        <TouchableOpacity style={[styles.medCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+        <TouchableOpacity
+            style={[styles.medCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+            onPress={() => router.push({
+                pathname: '/medicine-details',
+                params: { medicine: JSON.stringify(med) }
+            })}
+        >
             <View style={[styles.medIconContainer, { backgroundColor: med.color + '15' }]}>
                 <Ionicons name={med.icon} size={24} color={med.color} />
             </View>

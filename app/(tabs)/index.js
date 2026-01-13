@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import {
   Dimensions,
   Platform,
@@ -19,6 +20,7 @@ export default function Home() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const gradients = Gradients;
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -57,11 +59,11 @@ export default function Home() {
           >
             <View style={styles.heroContent}>
               <View>
-                <Text style={[styles.heroTitle, { color: theme.text }]}>Daily Health Tip</Text>
-                <Text style={[styles.heroSubtitle, { color: theme.text + 'CC' }]}>Stay hydrated! Drinking warm water in the morning boosts metabolism.</Text>
+                <Text style={[styles.heroTitle, { color: '#FFFFFF' }]}>Daily Health Tip</Text>
+                <Text style={[styles.heroSubtitle, { color: 'rgba(255,255,255,0.9)' }]}>Stay hydrated! Drinking warm water in the morning boosts metabolism.</Text>
               </View>
               <View style={styles.heroIconContainer}>
-                <Ionicons name="water" size={40} color={theme.primary} />
+                <Ionicons name="water" size={40} color={'#FFFFFF'} />
               </View>
             </View>
             <TouchableOpacity style={styles.heroButton}>
@@ -92,6 +94,8 @@ export default function Home() {
               icon="nutrition"
               color="#FFB347"
               theme={theme}
+              router={router}
+              status="Active"
             />
             <ScheduleCard
               time="12:30 PM"
@@ -100,6 +104,8 @@ export default function Home() {
               icon="fish"
               color="#FF8C42"
               theme={theme}
+              router={router}
+              status="Low Stock"
             />
             <ScheduleCard
               time="09:00 PM"
@@ -108,6 +114,8 @@ export default function Home() {
               icon="moon"
               color="#F06292"
               theme={theme}
+              router={router}
+              status="Active"
             />
           </ScrollView>
 
@@ -145,16 +153,33 @@ export default function Home() {
   );
 }
 
-function ScheduleCard({ time, title, subtitle, icon, color, theme }) {
+function ScheduleCard({ time, title, subtitle, icon, color, theme, router, status }) {
+  const med = {
+    id: Math.random().toString(),
+    name: title,
+    dosage: '1 unit', // Placeholder
+    frequency: subtitle,
+    nextDose: time,
+    status: status || 'Active',
+    color: color,
+    icon: icon
+  };
+
   return (
-    <View style={[styles.scheduleCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+    <TouchableOpacity
+      style={[styles.scheduleCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+      onPress={() => router.push({
+        pathname: '/medicine-details',
+        params: { medicine: JSON.stringify(med) }
+      })}
+    >
       <View style={[styles.iconCircle, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon} size={24} color={color} />
       </View>
       <Text style={[styles.cardTime, { color: theme.icon }]}>{time}</Text>
       <Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text>
       <Text style={[styles.cardSubtitle, { color: theme.icon }]} numberOfLines={1}>{subtitle}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
