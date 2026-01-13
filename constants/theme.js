@@ -8,23 +8,36 @@ import { Platform } from 'react-native';
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
+const palette = {
+  text: '#8B735B', // Softer Brown
+  background: '#FFFBF7',
+  tint: '#FF8C42',
+  icon: '#8B735B',
+  tabIconDefault: '#C8B6A6',
+  tabIconSelected: '#FF8C42',
+  primary: '#FF8C42', // Warm Orange
+  secondary: '#F9D423', // Sunny Yellow
+  accent: '#FFB347', // Soft Peach
+  success: '#82C91E',
+  warning: '#FAB005',
+  danger: '#FA5252',
+  card: '#FFF5EB', // Soft Peach instead of White
+  border: '#F3E9DC',
+  pastelPeach: '#FFF5EB',
+  pastelYellow: '#FFFBEB',
+  pastelOrange: '#FFF0E6',
+};
+
 export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
+  light: palette,
+  dark: palette,
+};
+
+export const Gradients = {
+  main: ['#FFF9F2', '#FFF0E6'], // Warm Cream to Soft Peach
+  warm: ['#FFB347', '#FF8C42'],
+  sunny: ['#F9D423', '#FFB347'],
+  sunset: ['#FF8C42', '#F06292'],
 };
 
 export const Fonts = Platform.select({
