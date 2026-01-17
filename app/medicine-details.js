@@ -1,0 +1,460 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { arrayUnion, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { Alert, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, useColorScheme, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors, Gradients } from '../constants/theme';
+import { auth, db } from '../firebase';
+
+import { getNextDose } from '../utils/medicineUtils';
+
+const { width } = Dimensions.get('window');
+
+export default function MedicineDetails() {
+    const router = useRouter();
+    const params = useLocalSearchParams();
+    const colorScheme = useColorScheme() ?? 'light';
+    const theme = Colors[colorScheme];
+    const gradients = Gradients;
+    const [menuVisible, setMenuVisible] = useState(false);
+    const [medicine, setMedicine] = useState(params.medicine ? JSON.parse(params.medicine) : null);
+
+    useEffect(() => {
+        if (!medicine?.id) return;
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const unsub = onSnapshot(doc(db, 'users', user.uid, 'medicines', medicine.id), (doc) => {
+            if (doc.exists()) {
+                setMedicine({ id: doc.id, ...doc.data() });
+            }
+        });
+
+        return () => unsub();
+    }, []);
+
+    const handleDelete = () => {
+        setMenuVisible(false);
+        Alert.alert(
+            "Delete Medicine",
+            "Are you sure you want to delete this medicine? This action cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const user = auth.currentUser;
+                            if (!user) return;
+                            await deleteDoc(doc(db, 'users', user.uid, 'medicines', medicine.id));
+                            Alert.alert("Success", "Medicine deleted successfully", [
+                                { text: "OK", onPress: () => router.replace('/(tabs)/medicines') }
+                            ]);
+                        } catch (error) {
+                            console.error("Error deleting medicine:", error);
+                            Alert.alert("Error", "Failed to delete medicine");
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    if (!medicine) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: theme.text }}>Medicine not found</Text>
+                <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
+                    <Text style={{ color: theme.primary }}>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Active': return theme.success;
+            case 'Low Stock': return theme.warning;
+            case 'Expiring': return theme.warning;
+            case 'Expired': return theme.danger;
+            default: return theme.icon;
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <LinearGradient
+                colors={gradients.main}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
+
+            <SafeAreaView style={{ flex: 1 }}>
+                <View style={styles.header}>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+                    >
+                        <Ionicons name="chevron-back" size={24} color={theme.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>Medicine Details</Text>
+                    <TouchableOpacity
+                        onPress={() => setMenuVisible(true)}
+                        style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+                    >
+                        <Ionicons name="ellipsis-horizontal" size={24} color={theme.text} />
+                    </TouchableOpacity>
+
+                    <Modal
+                        visible={menuVisible}
+                        transparent={true}
+                        animationType="fade"
+                        onRequestClose={() => setMenuVisible(false)}
+                    >
+                        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+                            <View style={styles.modalOverlay}>
+                                <View style={[styles.menuContent, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                                    <TouchableOpacity
+                                        style={styles.menuItem}
+                                        onPress={() => {
+                                            setMenuVisible(false);
+                                            router.push({
+                                                pathname: '/add-medicine',
+                                                params: { medicine: JSON.stringify(medicine), mode: 'edit' }
+                                            });
+                                        }}
+                                    >
+                                        <Ionicons name="create-outline" size={20} color={theme.text} />
+                                        <Text style={[styles.menuText, { color: theme.text }]}>Edit Medicine</Text>
+                                    </TouchableOpacity>
+                                    <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+                                    <TouchableOpacity
+                                        style={styles.menuItem}
+                                        onPress={handleDelete}
+                                    >
+                                        <Ionicons name="trash-outline" size={20} color={theme.danger} />
+                                        <Text style={[styles.menuText, { color: theme.danger }]}>Delete Medicine</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </Modal>
+                </View>
+
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                    {/* Medicine Icon & Name */}
+                    <View style={styles.topSection}>
+                        <View style={[styles.iconContainer, { backgroundColor: medicine.color + '15' }]}>
+                            <Ionicons name={medicine.icon} size={60} color={medicine.color} />
+                        </View>
+                        <Text style={[styles.medicineName, { color: theme.text }]}>{medicine.name}</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(medicine.status) + '15' }]}>
+                            <Text style={[styles.statusText, { color: getStatusColor(medicine.status) }]}>{medicine.status}</Text>
+                        </View>
+                    </View>
+
+                    {/* Info Cards */}
+                    <View style={styles.infoGrid}>
+                        <InfoCard
+                            label="Dose"
+                            value={medicine.dosage || 'Not specified'}
+                            icon="flask-outline"
+                            theme={theme}
+                        />
+                        <InfoCard
+                            label="Frequency"
+                            value={medicine.frequency}
+                            icon="repeat-outline"
+                            theme={theme}
+                        />
+                        <InfoCard
+                            label="Next Dose"
+                            value={getNextDose(medicine.times)}
+                            icon="time-outline"
+                            theme={theme}
+                        />
+                        <InfoCard
+                            label="Times/Day"
+                            value={medicine.frequency === 'Daily' ? `${medicine.timesPerDay}x` : 'N/A'}
+                            icon="medical-outline"
+                            theme={theme}
+                        />
+                    </View>
+
+                    {/* Reminders Section */}
+                    <View style={styles.section}>
+                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Reminders</Text>
+                        <View style={[styles.reminderCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                            {medicine.times && medicine.times.length > 0 ? (
+                                medicine.times.map((time, index) => (
+                                    <View key={index} style={[styles.reminderRow, index > 0 && { marginTop: 10 }]}>
+                                        <Ionicons name="notifications" size={20} color={theme.primary} />
+                                        <Text style={[styles.reminderText, { color: theme.text }]}>Dose {index + 1} - {time}</Text>
+                                        <Ionicons name="checkmark-circle" size={24} color={theme.success} />
+                                    </View>
+                                ))
+                            ) : (
+                                <View style={styles.reminderRow}>
+                                    <Ionicons name="notifications" size={20} color={theme.primary} />
+                                    <Text style={[styles.reminderText, { color: theme.text }]}>No specific times set</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+
+                    {/* Expiry Status Section */}
+                    <View style={styles.section}>
+                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Expiry Status</Text>
+                        <View style={[styles.reminderCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                            <View style={styles.stockRow}>
+                                <View>
+                                    <Text style={[styles.stockLabel, { color: theme.icon }]}>Expiry Date</Text>
+                                    <Text style={[styles.stockValue, { color: theme.text }]}>
+                                        {new Date(medicine.expiryDate).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                                <View style={{ alignItems: 'flex-end' }}>
+                                    <Text style={[styles.stockLabel, { color: theme.icon }]}>Status</Text>
+                                    <Text style={[styles.stockValue, { color: getStatusColor(medicine.status) }]}>
+                                        {medicine.status}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Mark as Taken Button */}
+                    <TouchableOpacity
+                        style={[styles.takeBtn, { backgroundColor: theme.primary }]}
+                        onPress={async () => {
+                            try {
+                                const user = auth.currentUser;
+                                if (!user) return;
+
+                                // Logic to determine "which" dose is being taken.
+                                // For simplicity, we'll mark the *next scheduled dose* for today as taken.
+                                // If no specific time, we just log the current timestamp.
+
+                                const nextDoseTime = getNextDose(medicine.times);
+                                const today = new Date().toISOString().split('T')[0];
+                                let takenEntry = new Date().toISOString(); // Default to now
+
+                                if (nextDoseTime !== 'No more doses today' && nextDoseTime !== 'No doses scheduled') {
+                                    // Construct the full string for the taken dose: "YYYY-MM-DD HH:mm AM/PM"
+                                    // This matches how we will filter it later.
+                                    takenEntry = `${today} ${nextDoseTime}`;
+                                }
+
+                                await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
+                                    takenHistory: arrayUnion(takenEntry)
+                                });
+
+                                Alert.alert("Success", "Medicine marked as taken!");
+                                router.back();
+
+                            } catch (error) {
+                                console.error("Error marking as taken:", error);
+                                Alert.alert("Error", "Failed to mark as taken");
+                            }
+                        }}
+                    >
+                        <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
+                        <Text style={styles.takeBtnText}>Mark as Taken</Text>
+                    </TouchableOpacity>
+                </ScrollView>
+            </SafeAreaView>
+        </View>
+    );
+}
+
+function InfoCard({ label, value, icon, theme }) {
+    return (
+        <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+            <Ionicons name={icon} size={20} color={theme.primary} />
+            <Text style={[styles.infoLabel, { color: theme.icon }]}>{label}</Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>{value}</Text>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        marginBottom: 20,
+    },
+    backBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+    },
+    topSection: {
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    iconContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    medicineName: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 10,
+    },
+    statusBadge: {
+        paddingHorizontal: 15,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    infoGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginBottom: 30,
+    },
+    infoCard: {
+        width: (width - 55) / 2,
+        padding: 15,
+        borderRadius: 20,
+        marginBottom: 15,
+    },
+    infoLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 8,
+        marginBottom: 4,
+    },
+    infoValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    section: {
+        marginBottom: 25,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 15,
+    },
+    reminderCard: {
+        padding: 20,
+        borderRadius: 25,
+    },
+    reminderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    reminderText: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '600',
+        marginLeft: 12,
+    },
+    stockRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    stockLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    stockValue: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    refillBtn: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 12,
+    },
+    refillText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+        paddingTop: 60,
+        paddingRight: 20,
+    },
+    menuContent: {
+        width: 180,
+        borderRadius: 15,
+        padding: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 10,
+    },
+    menuText: {
+        fontSize: 15,
+        fontWeight: '600',
+        marginLeft: 12,
+    },
+    menuDivider: {
+        height: 1,
+        marginVertical: 4,
+        marginHorizontal: 8,
+    },
+    takeBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        borderRadius: 20,
+        marginBottom: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    takeBtnText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginLeft: 10,
+    },
+});
