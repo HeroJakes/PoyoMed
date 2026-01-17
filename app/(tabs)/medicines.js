@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { collection, onSnapshot, query } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import {
     Dimensions,
     Platform,
@@ -22,6 +23,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Gradients } from '../../constants/theme';
+import { auth, db } from '../../firebase';
+
+import { getNextDose } from '../../utils/medicineUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,6 +39,9 @@ export default function Medicines() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+    const [medications, setMedications] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     // Animation values
     const menuAnim = useSharedValue(0);
@@ -53,48 +60,50 @@ export default function Medicines() {
 
     const categories = ['All', 'Daily', 'Weekly', 'As Needed', 'Supplements'];
 
-    const medications = [
-        {
-            id: '1',
-            name: 'Vitamin C',
-            dosage: '500mg',
-            frequency: 'Once daily',
-            nextDose: '08:00 AM',
-            status: 'Active',
-            color: '#FFB347',
-            icon: 'nutrition'
-        },
-        {
-            id: '2',
-            name: 'Omega 3',
-            dosage: '1000mg',
-            frequency: 'Twice daily',
-            nextDose: '12:30 PM',
-            status: 'Low Stock',
-            color: '#FF8C42',
-            icon: 'fish'
-        },
-        {
-            id: '3',
-            name: 'Paracetamol',
-            dosage: '500mg',
-            frequency: 'As needed',
-            nextDose: '--',
-            status: 'Expiring',
-            color: theme.danger,
-            icon: 'medical'
-        },
-        {
-            id: '4',
-            name: 'Magnesium',
-            dosage: '250mg',
-            frequency: 'Before sleep',
-            nextDose: '09:00 PM',
-            status: 'Active',
-            color: '#F06292',
-            icon: 'moon'
-        }
-    ];
+    const calculateStatus = (expiryDate) => {
+        if (!expiryDate) return 'Active';
+        const today = new Date();
+        const expiry = new Date(expiryDate);
+        const diffTime = expiry - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) return 'Expired';
+        if (diffDays <= 7) return 'Expiring';
+        return 'Active';
+    };
+
+    useEffect(() => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const medicinesRef = collection(db, 'users', user.uid, 'medicines');
+        let q = query(medicinesRef);
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const meds = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    status: calculateStatus(data.expiryDate), // Override status with calculated one
+                    nextDose: getNextDose(data.times) // Calculate next dose dynamically
+                };
+            });
+            setMedications(meds);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching medicines:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const filteredMedications = medications.filter(med => {
+        const matchesSearch = med.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = activeCategory === 'All' || med.frequency === activeCategory;
+        return matchesSearch && matchesCategory;
+    });
 
     const overlayStyle = useAnimatedStyle(() => ({
         opacity: overlayOpacity.value,
@@ -133,8 +142,11 @@ export default function Medicines() {
             <SafeAreaView style={{ flex: 1 }}>
                 <View style={styles.header}>
                     <Text style={[styles.title, { color: darkText }]}>My Medicines</Text>
-                    <TouchableOpacity style={[styles.notificationBtn, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}>
-                        <Ionicons name="filter-outline" size={22} color={darkText} />
+                    <TouchableOpacity
+                        onPress={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
+                        style={[styles.notificationBtn, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}
+                    >
+                        <Ionicons name={viewMode === 'list' ? 'grid-outline' : 'list-outline'} size={22} color={darkText} />
                     </TouchableOpacity>
                 </View>
 
@@ -181,11 +193,17 @@ export default function Medicines() {
                     </ScrollView>
                 </View>
 
-                {/* Medication List */}
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
-                    {medications.map((med) => (
-                        <MedicationCard key={med.id} med={med} theme={theme} darkText={darkText} router={router} />
-                    ))}
+                {/* Medication List/Grid */}
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={viewMode === 'list' ? styles.listContent : styles.gridContent}>
+                    <View style={viewMode === 'grid' ? styles.gridRow : null}>
+                        {filteredMedications.map((med) => (
+                            viewMode === 'list' ? (
+                                <MedicationCard key={med.id} med={med} theme={theme} darkText={darkText} router={router} />
+                            ) : (
+                                <MedicationGridCard key={med.id} med={med} theme={theme} darkText={darkText} router={router} />
+                            )
+                        ))}
+                    </View>
                 </ScrollView>
             </SafeAreaView>
 
@@ -254,7 +272,8 @@ function MedicationCard({ med, theme, darkText, router }) {
         switch (status) {
             case 'Active': return theme.success;
             case 'Low Stock': return theme.warning;
-            case 'Expiring': return theme.danger;
+            case 'Expiring': return theme.warning;
+            case 'Expired': return theme.danger;
             default: return theme.icon;
         }
     };
@@ -279,7 +298,9 @@ function MedicationCard({ med, theme, darkText, router }) {
                     </View>
                 </View>
 
-                <Text style={[styles.medDosage, { color: theme.icon }]}>{med.dosage} • {med.frequency}</Text>
+                <Text style={[styles.medDosage, { color: theme.icon }]}>
+                    {med.dosage ? `${med.dosage} • ` : ''}{med.frequency}
+                </Text>
 
                 <View style={styles.medFooter}>
                     <View style={styles.nextDoseContainer}>
@@ -287,6 +308,48 @@ function MedicationCard({ med, theme, darkText, router }) {
                         <Text style={[styles.nextDoseText, { color: theme.icon }]}> Next: {med.nextDose}</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={theme.icon} />
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+}
+
+function MedicationGridCard({ med, theme, darkText, router }) {
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Active': return theme.success;
+            case 'Low Stock': return theme.warning;
+            case 'Expiring': return theme.warning;
+            case 'Expired': return theme.danger;
+            default: return theme.icon;
+        }
+    };
+
+    return (
+        <TouchableOpacity
+            style={[styles.gridCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+            onPress={() => router.push({
+                pathname: '/medicine-details',
+                params: { medicine: JSON.stringify(med) }
+            })}
+        >
+            <View style={[styles.gridIconContainer, { backgroundColor: med.color + '15' }]}>
+                <Ionicons name={med.icon} size={32} color={med.color} />
+            </View>
+
+            <View style={styles.gridInfo}>
+                <Text style={[styles.gridName, { color: theme.text }]} numberOfLines={1}>{med.name}</Text>
+                <Text style={[styles.gridDosage, { color: theme.icon }]} numberOfLines={1}>
+                    {med.dosage || med.frequency}
+                </Text>
+
+                <View style={[styles.gridStatusBadge, { backgroundColor: getStatusColor(med.status) + '15' }]}>
+                    <Text style={[styles.gridStatusText, { color: getStatusColor(med.status) }]}>{med.status}</Text>
+                </View>
+
+                <View style={styles.gridFooter}>
+                    <Ionicons name="time-outline" size={12} color={theme.icon} />
+                    <Text style={[styles.gridTimeText, { color: theme.icon }]}> {med.nextDose}</Text>
                 </View>
             </View>
         </TouchableOpacity>
@@ -508,5 +571,74 @@ const styles = StyleSheet.create({
         borderRadius: 32,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    gridContent: {
+        paddingHorizontal: 15,
+        paddingBottom: 100,
+    },
+    gridRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+    },
+    gridCard: {
+        width: (width - 45) / 2,
+        padding: 15,
+        borderRadius: 25,
+        marginBottom: 15,
+        alignItems: 'center',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.05,
+                shadowRadius: 10,
+            },
+            android: {
+                elevation: 3,
+            },
+        }),
+    },
+    gridIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    gridInfo: {
+        alignItems: 'center',
+        width: '100%',
+    },
+    gridName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 2,
+        textAlign: 'center',
+    },
+    gridDosage: {
+        fontSize: 12,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    gridStatusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginBottom: 8,
+    },
+    gridStatusText: {
+        fontSize: 9,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    gridFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    gridTimeText: {
+        fontSize: 11,
+        fontWeight: '500',
     },
 });

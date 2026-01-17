@@ -1,9 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { collection, doc, getDoc, onSnapshot, query } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import {
+  Alert,
   Dimensions,
+  Modal,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,14 +18,138 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Gradients } from '../../constants/theme';
+import { auth, db } from '../../firebase';
+import { getNextDose, isNextDoseToday } from '../../utils/medicineUtils';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function Home() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const gradients = Gradients;
   const router = useRouter();
+
+  const [userName, setUserName] = useState('User');
+  const [todaysMedicines, setTodaysMedicines] = useState([]);
+  const [expiringMedicines, setExpiringMedicines] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]); // Placeholder for now
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    if (auth.currentUser) {
+      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      if (userDoc.exists()) {
+        setUserName(userDoc.data().name || 'User');
+      }
+    }
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  // Fetch User Name
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          setUserName(userDoc.data().name || 'User');
+        }
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  // Fetch Medicines and Filter
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const medicinesRef = collection(db, 'users', user.uid, 'medicines');
+    const q = query(medicinesRef);
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const meds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Filter for Today's Schedule
+      const todayMeds = meds.filter(med => {
+        if (med.frequency !== 'Daily') return false;
+        if (med.status === 'Expired') return false;
+
+        // Check if next dose is today
+        if (!isNextDoseToday(med.times)) return false;
+
+        // Check if THIS specific dose has been taken
+        const nextDose = getNextDose(med.times);
+        if (nextDose === 'No more doses today' || nextDose === 'No doses scheduled') return false;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const expectedTakenEntry = `${todayStr} ${nextDose}`;
+
+        if (med.takenHistory && med.takenHistory.includes(expectedTakenEntry)) {
+          return false; // Already taken
+        }
+
+        return true;
+      });
+      setTodaysMedicines(todayMeds);
+
+      // Filter for Expiring Soon (<= 7 days)
+      const expiring = meds.filter(med => {
+        if (!med.expiryDate) return false;
+        const today = new Date();
+        const expiry = new Date(med.expiryDate);
+        const diffTime = expiry - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays <= 7 && diffDays >= 0;
+      }).map(med => {
+        const today = new Date();
+        const expiry = new Date(med.expiryDate);
+        const diffTime = expiry - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return { ...med, daysLeft: diffDays };
+      });
+      setExpiringMedicines(expiring);
+
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleNotification = () => {
+    setShowNotifications(true);
+  };
+
+  const handleLearnMore = () => {
+    Alert.alert(
+      'Health Tip',
+      'Drinking warm water in the morning can help stimulate your metabolism, aid digestion, and keep you hydrated throughout the day. It is a simple habit with great benefits!'
+    );
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Active': return theme.success;
+      case 'Low Stock': return theme.warning;
+      case 'Expiring': return theme.warning;
+      case 'Expired': return theme.danger;
+      default: return theme.icon;
+    }
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 5) return 'Good Night,';
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 18) return 'Good Afternoon,';
+    if (hour < 21) return 'Good Evening,';
+    return 'Good Night,';
+  };
 
   return (
     <View style={styles.container}>
@@ -32,7 +161,13 @@ export default function Home() {
       />
 
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+          }
+        >
           {/* Header Section */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -40,11 +175,14 @@ export default function Home() {
                 <Ionicons name="sunny" size={24} color={theme.primary} />
               </View>
               <View style={styles.headerText}>
-                <Text style={[styles.greeting, { color: theme.icon }]}>Good Morning,</Text>
-                <Text style={[styles.userName, { color: theme.text }]}>Ivan</Text>
+                <Text style={[styles.greeting, { color: theme.icon }]}>{getGreeting()}</Text>
+                <Text style={[styles.userName, { color: theme.text }]}>{userName}</Text>
               </View>
             </View>
-            <TouchableOpacity style={[styles.notificationBtn, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}>
+            <TouchableOpacity
+              style={[styles.notificationBtn, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}
+              onPress={handleNotification}
+            >
               <Ionicons name="notifications-outline" size={22} color={theme.text} />
               <View style={styles.notificationBadge} />
             </TouchableOpacity>
@@ -66,7 +204,7 @@ export default function Home() {
                 <Ionicons name="water" size={40} color={'#FFFFFF'} />
               </View>
             </View>
-            <TouchableOpacity style={styles.heroButton}>
+            <TouchableOpacity style={styles.heroButton} onPress={handleLearnMore}>
               <Text style={[styles.heroButtonText, { color: theme.text }]}>Learn More</Text>
               <Ionicons name="arrow-forward" size={16} color={theme.primary} />
             </TouchableOpacity>
@@ -75,7 +213,7 @@ export default function Home() {
           {/* Horizontal Section - Today's Reminders */}
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Today's Schedule</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/medicines')}>
               <Text style={[styles.seeAll, { color: theme.primary }]}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -87,36 +225,20 @@ export default function Home() {
             snapToInterval={width * 0.7 + 15}
             decelerationRate="fast"
           >
-            <ScheduleCard
-              time="08:00 AM"
-              title="Vitamin C"
-              subtitle="Take after breakfast"
-              icon="nutrition"
-              color="#FFB347"
-              theme={theme}
-              router={router}
-              status="Active"
-            />
-            <ScheduleCard
-              time="12:30 PM"
-              title="Omega 3"
-              subtitle="Take with lunch"
-              icon="fish"
-              color="#FF8C42"
-              theme={theme}
-              router={router}
-              status="Low Stock"
-            />
-            <ScheduleCard
-              time="09:00 PM"
-              title="Magnesium"
-              subtitle="Before sleep"
-              icon="moon"
-              color="#F06292"
-              theme={theme}
-              router={router}
-              status="Active"
-            />
+            {todaysMedicines.length > 0 ? (
+              todaysMedicines.map((med) => (
+                <ScheduleCard
+                  key={med.id}
+                  medicine={med}
+                  theme={theme}
+                  router={router}
+                />
+              ))
+            ) : (
+              <View style={{ padding: 20, alignItems: 'center', width: width - 40 }}>
+                <Text style={{ color: theme.icon }}>No medicines scheduled for today.</Text>
+              </View>
+            )}
           </ScrollView>
 
           {/* Expiring Soon Section */}
@@ -125,65 +247,70 @@ export default function Home() {
           </View>
 
           <View style={[styles.expiringContainer, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}>
-            <ExpiringItem
-              title="Paracetamol"
-              days="3 days left"
-              icon="alert-circle"
-              color={theme.danger}
-              theme={theme}
-            />
-            <View style={[styles.divider, { backgroundColor: theme.border }]} />
-            <ExpiringItem
-              title="Cough Syrup"
-              days="1 week left"
-              icon="time"
-              color={theme.warning}
-              theme={theme}
-            />
+            {expiringMedicines.length > 0 ? (
+              expiringMedicines.map((med, index) => (
+                <View key={med.id}>
+                  <ExpiringItem
+                    title={med.name}
+                    days={`${med.daysLeft} days left`}
+                    icon={med.icon || 'medical'}
+                    color={theme.warning} // Or dynamic based on severity
+                    theme={theme}
+                    onRecycle={() => router.push('/(tabs)/recycle')}
+                  />
+                  {index < expiringMedicines.length - 1 && (
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                  )}
+                </View>
+              ))
+            ) : (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: theme.icon }}>No medicines expiring soon.</Text>
+              </View>
+            )}
           </View>
 
           {/* Quick Stats */}
           <View style={styles.statsRow}>
-            <StatItem label="Adherence" value="92%" icon="checkmark-circle" color="#82C91E" theme={theme} />
-            <StatItem label="Streak" value="12 Days" icon="flame" color="#FF8C42" theme={theme} />
+            <StatItem label="Total Medicines" value={todaysMedicines.length.toString()} icon="medical" color="#82C91E" theme={theme} />
+            <StatItem label="Expiring" value={expiringMedicines.length.toString()} icon="alert-circle" color="#FF8C42" theme={theme} />
           </View>
         </ScrollView>
+
+        {/* Notification Popup */}
+        <NotificationPopup
+          visible={showNotifications}
+          onClose={() => setShowNotifications(false)}
+          notifications={notifications}
+          onClearAll={() => setNotifications([])}
+          theme={theme}
+          gradients={gradients}
+        />
       </SafeAreaView>
     </View>
   );
 }
 
-function ScheduleCard({ time, title, subtitle, icon, color, theme, router, status }) {
-  const med = {
-    id: Math.random().toString(),
-    name: title,
-    dosage: '1 unit', // Placeholder
-    frequency: subtitle,
-    nextDose: time,
-    status: status || 'Active',
-    color: color,
-    icon: icon
-  };
-
+function ScheduleCard({ medicine, theme, router }) {
   return (
     <TouchableOpacity
       style={[styles.scheduleCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
       onPress={() => router.push({
         pathname: '/medicine-details',
-        params: { medicine: JSON.stringify(med) }
+        params: { medicine: JSON.stringify(medicine) }
       })}
     >
-      <View style={[styles.iconCircle, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={24} color={color} />
+      <View style={[styles.iconCircle, { backgroundColor: medicine.color + '20' }]}>
+        <Ionicons name={medicine.icon} size={24} color={medicine.color} />
       </View>
-      <Text style={[styles.cardTime, { color: theme.icon }]}>{time}</Text>
-      <Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text>
-      <Text style={[styles.cardSubtitle, { color: theme.icon }]} numberOfLines={1}>{subtitle}</Text>
+      <Text style={[styles.cardTime, { color: theme.icon }]}>{getNextDose(medicine.times)}</Text>
+      <Text style={[styles.cardTitle, { color: theme.text }]}>{medicine.name}</Text>
+      <Text style={[styles.cardSubtitle, { color: theme.icon }]} numberOfLines={1}>{medicine.dosage}</Text>
     </TouchableOpacity>
   );
 }
 
-function ExpiringItem({ title, days, icon, color, theme }) {
+function ExpiringItem({ title, days, icon, color, theme, onRecycle }) {
   return (
     <View style={styles.expiringItem}>
       <View style={styles.expiringLeft}>
@@ -195,7 +322,10 @@ function ExpiringItem({ title, days, icon, color, theme }) {
           <Text style={[styles.expiringDays, { color: color }]}>{days}</Text>
         </View>
       </View>
-      <TouchableOpacity style={[styles.recycleBtn, { backgroundColor: theme.pastelOrange }]}>
+      <TouchableOpacity
+        style={[styles.recycleBtn, { backgroundColor: theme.pastelOrange }]}
+        onPress={onRecycle}
+      >
         <Text style={[styles.recycleText, { color: theme.primary }]}>Recycle</Text>
       </TouchableOpacity>
     </View>
@@ -211,6 +341,67 @@ function StatItem({ label, value, icon, color, theme }) {
       </View>
       <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
     </View>
+  );
+}
+
+function NotificationPopup({ visible, onClose, notifications, onClearAll, theme, gradients }) {
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Notifications</Text>
+            <View style={styles.modalHeaderBtns}>
+              <TouchableOpacity onPress={onClearAll}>
+                <Text style={[styles.clearAllText, { color: theme.primary }]}>Clear All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.closeModalBtn} onPress={onClose}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {notifications.length > 0 ? (
+              notifications.map((notif, index) => (
+                <View key={notif.id}>
+                  <View style={styles.notifItem}>
+                    <View style={[styles.notifIconContainer, { backgroundColor: notif.color + '15' }]}>
+                      <Ionicons name={notif.icon} size={22} color={notif.color} />
+                    </View>
+                    <View style={styles.notifText}>
+                      <View style={styles.notifTitleRow}>
+                        <Text style={[styles.notifTitle, { color: theme.text }]}>{notif.title}</Text>
+                        {notif.unread && <View style={styles.unreadDot} />}
+                      </View>
+                      <Text style={[styles.notifMessage, { color: theme.icon }]}>{notif.message}</Text>
+                      <Text style={[styles.notifTime, { color: theme.icon }]}>{notif.time}</Text>
+                    </View>
+                  </View>
+                  {index < notifications.length - 1 && (
+                    <View style={[styles.notifDivider, { backgroundColor: theme.border }]} />
+                  )}
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyNotif}>
+                <Ionicons name="notifications-off-outline" size={48} color={theme.icon} />
+                <Text style={[styles.emptyNotifText, { color: theme.icon }]}>No new notifications</Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </TouchableOpacity>
+    </Modal>
   );
 }
 
@@ -476,5 +667,105 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 24,
+    maxHeight: height * 0.7,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 20,
+      },
+    }),
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  modalHeaderBtns: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  clearAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 15,
+  },
+  closeModalBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifItem: {
+    flexDirection: 'row',
+    paddingVertical: 15,
+  },
+  notifIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  notifText: {
+    flex: 1,
+  },
+  notifTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  notifTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FA5252',
+  },
+  notifMessage: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  notifTime: {
+    fontSize: 12,
+  },
+  notifDivider: {
+    height: 1,
+  },
+  emptyNotif: {
+    paddingVertical: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyNotifText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
