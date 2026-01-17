@@ -1,90 +1,102 @@
 # PoyoMed 💊
-> Saving lives and protecting our environment through AI-powered medicine management.
+> **Pioneering Smart Healthcare & Environmental Sustainability.**
 
-PoyoMed is a premium, AI-driven mobile application designed to bridge the gap between medication management and environmental sustainability. Built with **React Native** and powered by **Google Gemini AI**, PoyoMed doesn't just track your pills—it ensures you use them safely and dispose of them responsibly.
+PoyoMed is an all-in-one medication management ecosystem that leverages **Generative AI** and **Cloud Infrastructure** to help users stay healthy while minimizing the environmental impact of medical waste.
 
----
-
-## 🌟 Key Features
-
-### 🤖 AI Medicine Scanner (Gemini Powered)
-- **Intelligent Recognition**: Effortlessly scan medicine labels to extract names, dosages, and expiry dates.
-- **Auto-Correction**: Our AI intelligently corrects spelling errors (e.g., "fver" → "Fever") and normalizes medication names.
-- **Smart Date Parsing**: Automatically distinguishes between "Dispensed Date" and "Expiry Date," providing safe estimations when only a dispensed date is available.
-
-### ⚠️ Risk-Aware Management
-- **Safety Classification**: Every medication is automatically classified into **Low**, **Medium**, or **High** risk levels.
-- **Visual Safety Badges**: Quick-glance risk indicators on your dashboard and medicine cards.
-- **Disposal Guidelines**: Integrated expert guidelines on how to safely dispose of different types of medications.
-
-### ♻️ Eco-Recycling Ecosystem
-- **Eco Impact Dashboard**: Track your contribution to a cleaner planet with "Meds Saved" and "CO2 Reduced" metrics.
-- **The Drop-off Bag**: A dedicated space to manage expired or unused medications ready for recycling.
-- **Recycling Point Locator**: Find the nearest certified medicine collection points with real-time navigation.
-
-### 📱 Modern User Experience
-- **Premium Design**: A beautiful, glassmorphism-inspired UI with warm gradients and sleek micro-animations.
-- **Adaptive Theme**: Full support for system-wide Light and Dark modes.
-- **Smart Reminders**: Stay on top of your health with automated next-dose calculation and expiring item alerts.
+By combining proactive health tracking with a first-of-its-kind medication recycling system, PoyoMed addresses two critical global challenges: medication non-adherence and pharmaceutical pollution.
 
 ---
 
-## 🛠️ Tech Stack
-
-- **Framework:** [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/) (SDK 52)
-- **AI Intelligence:** [Google Gemini Pro Vision](https://deepmind.google/technologies/gemini/) (REST API Integration)
-- **Navigation:** [Expo Router](https://docs.expo.dev/router/introduction/) (v3)
-- **Backend:** [Firebase Firestore](https://firebase.google.com/docs/firestore) & Authentication
-- **Graphics:** [Expo Linear Gradient](https://docs.expo.dev/versions/latest/sdk/linear-gradient/)
-- **Animations:** [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/)
+## 🌍 The Mission
+To empower individuals to manage their health with confidence and provide a frictionless path for the responsible disposal of unused medications.
 
 ---
 
-## 📦 Getting Started
+## 🛠️ Core Pillars
+
+### 1. 🏥 Intelligent Health Management
+Stay in control of your daily regimen with a sophisticated dashboard designed for clarity.
+- **Smart Schedule**: Dynamic "Today's Schedule" that calculates your next dose in real-time.
+- **Inventory Control**: Track stock levels with automated "Low Stock" and "Expiring" alerts.
+- **Medication Archive**: Maintain a persistent history of all past and current prescriptions.
+- **Detailed Insights**: View comprehensive medicine details, including dosage instructions and frequency.
+
+### 2. 🤖 AI-Powered Scanner (Gemini 2.5)
+Our scanner isn't just OCR—it's an intelligent assistant that understands your medicine labels.
+- **Contextual Extraction**: Gemini AI parses brand names, generic active ingredients, and dosage units (pills, ml, tablets).
+- **Spelling Normalization**: Automatically corrects handwriting or printing errors (e.g., "fver" → "Fever").
+- **Smart Expiry Logic**: Intelligently distinguishes between *Dispensed Date* and *Expiry Date*. If an expiry date is missing, the AI estimates one based on the medicine type (syrup vs. tablet).
+- **Manual Override**: A seamless transition from AI scanning to a pre-filled manual form for final verification.
+
+### 3. ⚠️ Safety & Risk Classification
+Safety is at the heart of PoyoMed. Every medicine enters a safety pipeline:
+- **Risk Mapping**: Medicines are categorized as **Low**, **Medium**, or **High** risk based on therapeutic class (e.g., Vitamins vs. Antibiotics).
+- **Safety Badges**: Visual indicators integrated throughout the app (Cards, Details, Recents).
+- **Disposal Intelligence**: Targeted disposal methods (trash vs. pharmacy return) generated per medicine.
+
+### 4. ♻️ The Recycling Ecosystem
+A first-in-class feature set built for a greener planet.
+- **Eco-Impact Dashboard**: Visualize your contribution with metrics like **Meds Saved** and **CO2 Reduction**.
+- **The Drop-off Bag**: A dedicated workspace for items ready for disposal.
+- **Point Locator**: Map-integrated finder for certified pharmacy collection boxes.
+- **Educational Tips**: Bite-sized guides on how to protect our water and soil from pharmaceutical contamination.
+
+---
+
+## 🎨 Design Philosophy: "Poyo Warmth"
+PoyoMed features a unique design system called **Warmth**:
+- **Palette**: Soft Peach (#FFF5EB), Warm Orange (#FF8C42), and Eco Green (#82C91E).
+- **Glassmorphism**: Modern frosted-glass card effects for a premium feel.
+- **Adaptive UI**: Seamless transition between Light and Dark modes.
+- **Micro-animations**: Powered by **Reanimated** for an organic, responsive user experience.
+
+---
+
+## ⚙️ Technical Architecture
+
+- **Frontend**: React Native with **Expo SDK 52**.
+- **AI Service**: REST API integration with **Gemini Pro Vision** (Flash 2.5).
+- **Database**: Real-time synchronization with **Firebase Firestore**.
+- **Routing**: Sophisticated file-based routing via **Expo Router**.
+- **State Management**: React Hooks (useState/useEffect) with Firebase observers.
+
+---
+
+## � Getting Started
 
 ### Prerequisites
-- **Node.js**: LTS version (v18+)
-- **Expo Go App**: Downloaded on your mobile device (iOS/Android) or an emulator.
-- **Gemini API Key**: Required for the scanner features.
+- Node.js (v18+)
+- Expo Go (Mobile) or Android/iOS Emulator
+- A Google AI (Gemini) API Key
 
-### Installation
-
-1. **Clone the repository:**
+### Setup
+1. **Clone & Install**:
    ```bash
    git clone https://github.com/HeroJakes/PoyoMed.git
-   cd PoyoMed
-   ```
-
-2. **Install dependencies:**
-   ```bash
    npm install
    ```
-
-3. **Environment Setup:**
-   Create a `.env` file in the root directory:
+2. **Environment Configuration**:
+   Create a `.env` file:
    ```env
-   EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
+   EXPO_PUBLIC_GEMINI_API_KEY=your_key_here
+   ```
+3. **Launch**:
+   ```bash
+   npx expo start
    ```
 
-### Running the App
-```bash
-npx expo start
-```
+---
+
+## 📂 Repository Roadmap
+- `app/`: View layer - modular screens for every core feature.
+- `services/`: AI & External API communication layers.
+- `utils/`: Business logic, date calculations, and risk algorithms.
+- `constants/`: Global style tokens and configuration.
+- `components/`: Atomic UI components.
 
 ---
 
-## 📂 Project Structure
-- `app/`: Routing and main screens (Medicine List, Home, Camera, Recycle).
-- `services/`: AI logic and external API integrations.
-- `utils/`: Core business logic for risk classification and medication utilities.
-- `components/`: Modular UI elements following our design system.
-- `constants/`: Global theme configurations (Colors, Gradients, Fonts).
+## � License & Acknowledgments
+PoyoMed is a hackathon project by **HeroJakes**. Developed to showcase the potential of AI in sustainable healthcare.
 
----
-
-## 📄 License
-This project is a private hackathon submission for **HeroJakes**. All rights reserved.
-
----
-
-<p align="center">Made with ❤️ for a Greener World.</p>
+<p align="center">🌿 <b>Let's heal the world, one dose at a time.</b> 💊</p>
