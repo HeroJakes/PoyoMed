@@ -131,15 +131,29 @@ export default function CameraScreen() {
             const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions.
 
 Logic for extraction:
-- name: The brand or generic name of the medicine.
+- name: The brand or generic name of the medicine. Normalize and correct any obvious misspellings (e.g., if the text says "fver", return "Fever").
 - dosage: Look for phrases like 'Take [X] [unit]' (e.g., 'Take 1 pill' or 'Take 2 tablets'). Use the quantity and unit as the dosage.
 - frequency: One of 'Daily', 'Weekly', 'Monthly', 'As Needed'.
 - timesPerDay: Look for phrases like '[X] times daily', '[X] times a day', or '[X]x daily'. Return ONLY the number (e.g., 2).
 - expiry: 
-    1. Look for 'Expiry Date' or 'EXP'.
-    2. If not found, look for 'Dispensed Date', 'Issued Date', or 'Date:'. 
-    3. If only a dispensed date is found, estimate the expiry: add 1 year for tablets/capsules, or 6 months for liquids/syrups.
-    4. Return the date in YYYY-MM-DD format.
+    IMPORTANT - Be very careful to distinguish between dates:
+    
+    1. EXPIRY DATE (use this if found):
+       - Look for labels: "Expiry Date", "EXP", "Expiry", "Use Before", "Best Before"
+       - In Malay: "Tarikh Luput", "Luput"
+       - In Chinese: "有效期", "到期日"
+       - This is the ACTUAL expiry date - use it directly
+    
+    2. DISPENSED/ISSUED DATE (NOT expiry):
+       - Look for labels: "Date", "Dispensed Date", "Issued Date", "Date Dispensed"
+       - In Malay: "Tarikh", "Tarikh Dikeluarkan"
+       - In Chinese: "日期", "配药日期"
+       - If ONLY this date is found (no expiry date), estimate expiry:
+         * Add 1 year for tablets/capsules
+         * Add 6 months for liquids/syrups
+    
+    3. Return the date in YYYY-MM-DD format.
+    
 - isEstimated: Boolean. True if the expiry was estimated from a dispensed date, false if a clear expiry date was found.
 - instructions: Any other usage notes (e.g., 'After food').
 
@@ -198,15 +212,29 @@ If a field is not found, use an empty string (or 1 for timesPerDay, false for is
                 const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions.
 
 Logic for extraction:
-- name: The brand or generic name of the medicine.
+- name: The brand or generic name of the medicine. Normalize and correct any obvious misspellings (e.g., if the text says "fver", return "Fever").
 - dosage: Look for phrases like 'Take [X] [unit]' (e.g., 'Take 1 pill' or 'Take 2 tablets'). Use the quantity and unit as the dosage.
 - frequency: One of 'Daily', 'Weekly', 'Monthly', 'As Needed'.
 - timesPerDay: Look for phrases like '[X] times daily', '[X] times a day', or '[X]x daily'. Return ONLY the number (e.g., 2).
 - expiry: 
-    1. Look for 'Expiry Date' or 'EXP'.
-    2. If not found, look for 'Dispensed Date', 'Issued Date', or 'Date:'. 
-    3. If only a dispensed date is found, estimate the expiry: add 1 year for tablets/capsules, or 6 months for liquids/syrups.
-    4. Return the date in YYYY-MM-DD format.
+    IMPORTANT - Be very careful to distinguish between dates:
+    
+    1. EXPIRY DATE (use this if found):
+       - Look for labels: "Expiry Date", "EXP", "Expiry", "Use Before", "Best Before"
+       - In Malay: "Tarikh Luput", "Luput"
+       - In Chinese: "有效期", "到期日"
+       - This is the ACTUAL expiry date - use it directly
+    
+    2. DISPENSED/ISSUED DATE (NOT expiry):
+       - Look for labels: "Date", "Dispensed Date", "Issued Date", "Date Dispensed"
+       - In Malay: "Tarikh", "Tarikh Dikeluarkan"
+       - In Chinese: "日期", "配药日期"
+       - If ONLY this date is found (no expiry date), estimate expiry:
+         * Add 1 year for tablets/capsules
+         * Add 6 months for liquids/syrups
+    
+    3. Return the date in YYYY-MM-DD format.
+    
 - isEstimated: Boolean. True if the expiry was estimated from a dispensed date, false if a clear expiry date was found.
 - instructions: Any other usage notes (e.g., 'After food').
 
