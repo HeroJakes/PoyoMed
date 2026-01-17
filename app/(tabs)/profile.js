@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
@@ -24,6 +26,23 @@ export default function ProfileScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
     const gradients = Gradients;
+    const [userName, setUserName] = useState('User');
+    const [userEmail, setUserEmail] = useState('user@poyomed.com');
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const user = auth.currentUser;
+            if (user) {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    setUserName(data.name || 'User');
+                    setUserEmail(user.email || 'user@poyomed.com');
+                }
+            }
+        };
+        fetchUserData();
+    }, []);
 
     const handleComingSoon = (feature) => {
         Alert.alert('Coming Soon', `${feature} functionality will be available in a future update!`);
@@ -70,8 +89,8 @@ export default function ProfileScreen() {
                             <Ionicons name="sunny" size={40} color="#fff" />
                         </LinearGradient>
                         <View style={styles.userInfo}>
-                            <Text style={[styles.userName, { color: theme.text }]}>Ivan</Text>
-                            <Text style={[styles.userEmail, { color: theme.icon }]}>ivan@poyomed.com</Text>
+                            <Text style={[styles.userName, { color: theme.text }]}>{userName}</Text>
+                            <Text style={[styles.userEmail, { color: theme.icon }]}>{userEmail}</Text>
                         </View>
                         <TouchableOpacity
                             style={[styles.editBtn, { backgroundColor: theme.primary + '15' }]}
@@ -181,6 +200,188 @@ export default function ProfileScreen() {
                                             icon: 'heart',
                                             status: 'Low Stock',
                                             createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Metformin',
+                                            dosage: '500mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 2,
+                                            times: ['08:00 AM', '08:00 PM'],
+                                            expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 60,
+                                            color: '#00D2FC',
+                                            icon: 'medical',
+                                            status: 'Active',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Atorvastatin',
+                                            dosage: '20mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['09:00 PM'],
+                                            expiryDate: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 30,
+                                            color: '#845EC2',
+                                            icon: 'fitness',
+                                            status: 'Active',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Omeprazole',
+                                            dosage: '20mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['07:00 AM'],
+                                            expiryDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 10,
+                                            color: '#D65DB1',
+                                            icon: 'flask',
+                                            status: 'Low Stock',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Albuterol Inhaler',
+                                            dosage: '90mcg',
+                                            frequency: 'As Needed',
+                                            timesPerDay: 0,
+                                            times: [],
+                                            expiryDate: new Date(Date.now() + 400 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 1,
+                                            color: '#FF9671',
+                                            icon: 'medkit',
+                                            status: 'Active',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Cetirizine',
+                                            dosage: '10mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['09:00 AM'],
+                                            expiryDate: new Date(Date.now() + 50 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 15,
+                                            color: '#FFC75F',
+                                            icon: 'leaf',
+                                            status: 'Active',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Insulin Glargine',
+                                            dosage: '20 units',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['10:00 PM'],
+                                            expiryDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 5,
+                                            color: '#F9F871',
+                                            icon: 'water',
+                                            status: 'Low Stock',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Aspirin',
+                                            dosage: '81mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['08:00 AM'],
+                                            expiryDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 100,
+                                            color: '#FF6F91',
+                                            icon: 'heart-circle',
+                                            status: 'Expired',
+                                            createdAt: new Date().toISOString()
+                                        }
+                                        , {
+                                            name: 'Metformin',
+                                            dosage: '500mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 2,
+                                            times: ['08:00 AM', '08:00 PM'],
+                                            expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 60,
+                                            color: '#00D2FC',
+                                            icon: 'medical',
+                                            status: 'Active',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Atorvastatin',
+                                            dosage: '20mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['09:00 PM'],
+                                            expiryDate: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 30,
+                                            color: '#845EC2',
+                                            icon: 'fitness',
+                                            status: 'Active',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Omeprazole',
+                                            dosage: '20mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['07:00 AM'],
+                                            expiryDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 10,
+                                            color: '#D65DB1',
+                                            icon: 'flask',
+                                            status: 'Low Stock',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Albuterol Inhaler',
+                                            dosage: '90mcg',
+                                            frequency: 'As Needed',
+                                            timesPerDay: 0,
+                                            times: [],
+                                            expiryDate: new Date(Date.now() + 400 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 1,
+                                            color: '#FF9671',
+                                            icon: 'medkit',
+                                            status: 'Active',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Cetirizine',
+                                            dosage: '10mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['09:00 AM'],
+                                            expiryDate: new Date(Date.now() + 50 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 15,
+                                            color: '#FFC75F',
+                                            icon: 'leaf',
+                                            status: 'Active',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Insulin Glargine',
+                                            dosage: '20 units',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['10:00 PM'],
+                                            expiryDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 5,
+                                            color: '#F9F871',
+                                            icon: 'water',
+                                            status: 'Low Stock',
+                                            createdAt: new Date().toISOString()
+                                        },
+                                        {
+                                            name: 'Aspirin',
+                                            dosage: '81mg',
+                                            frequency: 'Daily',
+                                            timesPerDay: 1,
+                                            times: ['08:00 AM'],
+                                            expiryDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+                                            stock: 100,
+                                            color: '#FF6F91',
+                                            icon: 'heart-circle',
+                                            status: 'Expired',
+                                            createdAt: new Date().toISOString()
                                         }
                                     ];
 
@@ -194,6 +395,29 @@ export default function ProfileScreen() {
                                         console.error("Error adding dummy data:", error);
                                         Alert.alert('Error', 'Failed to add dummy data');
                                     }
+                                }}
+                            />
+                            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                            <SettingItem
+                                icon="notifications-off-outline"
+                                label="Clear All Notifications"
+                                theme={theme}
+                                onPress={async () => {
+                                    Alert.alert(
+                                        "Clear Notifications",
+                                        "Are you sure you want to cancel all scheduled notifications? This will stop all reminders.",
+                                        [
+                                            { text: "Cancel", style: "cancel" },
+                                            {
+                                                text: "Clear All",
+                                                style: "destructive",
+                                                onPress: async () => {
+                                                    await Notifications.cancelAllScheduledNotificationsAsync();
+                                                    Alert.alert("Success", "All notifications have been cleared.");
+                                                }
+                                            }
+                                        ]
+                                    );
                                 }}
                             />
                         </View>
