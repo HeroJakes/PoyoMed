@@ -26,6 +26,7 @@ import { Colors, Gradients } from '../../constants/theme';
 import { auth, db } from '../../firebase';
 
 import { getNextDose } from '../../utils/medicineUtils';
+import { getRiskMetadata } from '../../utils/riskClassification';
 
 const { width, height } = Dimensions.get('window');
 
@@ -307,6 +308,16 @@ function MedicationCard({ med, theme, darkText, router }) {
                         <Ionicons name="time-outline" size={14} color={theme.icon} />
                         <Text style={[styles.nextDoseText, { color: theme.icon }]}> Next: {med.nextDose}</Text>
                     </View>
+
+                    {med.riskLevel && (
+                        <View style={[styles.smallRiskBadge, { backgroundColor: getRiskMetadata(med.riskLevel).color + '15' }]}>
+                            <Ionicons name={getRiskMetadata(med.riskLevel).icon} size={12} color={getRiskMetadata(med.riskLevel).color} />
+                            <Text style={[styles.smallRiskText, { color: getRiskMetadata(med.riskLevel).color }]}>
+                                {getRiskMetadata(med.riskLevel).label.split(' ')[0]}
+                            </Text>
+                        </View>
+                    )}
+
                     <Ionicons name="chevron-forward" size={18} color={theme.icon} />
                 </View>
             </View>
@@ -351,6 +362,15 @@ function MedicationGridCard({ med, theme, darkText, router }) {
                     <Ionicons name="time-outline" size={12} color={theme.icon} />
                     <Text style={[styles.gridTimeText, { color: theme.icon }]}> {med.nextDose}</Text>
                 </View>
+
+                {med.riskLevel && (
+                    <View style={[styles.gridRiskBadge, { backgroundColor: getRiskMetadata(med.riskLevel).color + '15' }]}>
+                        <Ionicons name={getRiskMetadata(med.riskLevel).icon} size={10} color={getRiskMetadata(med.riskLevel).color} />
+                        <Text style={[styles.gridRiskText, { color: getRiskMetadata(med.riskLevel).color }]}>
+                            {getRiskMetadata(med.riskLevel).label.split(' ')[0]}
+                        </Text>
+                    </View>
+                )}
             </View>
         </TouchableOpacity>
     );
@@ -640,5 +660,34 @@ const styles = StyleSheet.create({
     gridTimeText: {
         fontSize: 11,
         fontWeight: '500',
+    },
+    smallRiskBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 4,
+        marginLeft: 'auto',
+        marginRight: 10,
+    },
+    smallRiskText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    gridRiskBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        gap: 3,
+        marginTop: 8,
+    },
+    gridRiskText: {
+        fontSize: 9,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
     },
 });

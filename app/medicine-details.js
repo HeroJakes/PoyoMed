@@ -8,7 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Gradients } from '../constants/theme';
 import { auth, db } from '../firebase';
 
-import { getNextDose } from '../utils/medicineUtils';
+import { getNextDose, isExpired } from '../utils/medicineUtils';
+import { getRiskMetadata } from '../utils/riskClassification';
 
 const { width } = Dimensions.get('window');
 
@@ -227,12 +228,70 @@ export default function MedicineDetails() {
                         </View>
                     </View>
 
-                    {/* Mark as Taken Button */}
+                    {/* Risk Level & Disposal Section */}
+                    {medicine.riskLevel && (
+                        <View style={styles.section}>
+                            <Text style={[styles.sectionTitle, { color: theme.text }]}>Safety & Disposal</Text>
+                            <View style={[styles.reminderCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                                {(() => {
+                                    const riskMeta = getRiskMetadata(medicine.riskLevel);
+                                    return (
+                                        <>
+                                            <View style={styles.riskHeader}>
+                                                <View style={[styles.riskBadge, { backgroundColor: riskMeta.color + '15' }]}>
+                                                    <Ionicons name={riskMeta.icon} size={20} color={riskMeta.color} />
+                                                    <Text style={[styles.riskLabel, { color: riskMeta.color }]}>
+                                                        {riskMeta.label}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                            <Text style={[styles.riskDescription, { color: theme.icon }]}>
+                                                {riskMeta.description}
+                                            </Text>
+                                            <View style={[styles.disposalBox, { backgroundColor: theme.background, borderColor: theme.border, borderWidth: 1 }]}>
+                                                <View style={styles.disposalHeader}>
+                                                    <Ionicons name="leaf-outline" size={18} color={theme.primary} />
+                                                    <Text style={[styles.disposalTitle, { color: theme.text }]}>Disposal Method</Text>
+                                                </View>
+                                                <Text style={[styles.disposalText, { color: theme.icon }]}>
+                                                    {riskMeta.disposalMethod}
+                                                </Text>
+                                            </View>
+                                        </>
+                                    );
+                                })()}
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Action Button */}
                     {(() => {
                         const nextDoseTime = getNextDose(medicine.times);
                         const today = new Date().toISOString().split('T')[0];
                         const expectedTakenEntry = `${today} ${nextDoseTime}`;
                         const isTaken = medicine.takenHistory && medicine.takenHistory.includes(expectedTakenEntry);
+
+                        // Check if medicine is expired
+                        if (isExpired(medicine.expiryDate)) {
+                            return (
+                                <TouchableOpacity
+                                    style={[styles.takeBtn, { backgroundColor: theme.pastelOrange }]}
+                                    onPress={() => {
+                                        Alert.alert(
+                                            "Expired Medicine",
+                                            "This medicine has expired. Please do not take it. Would you like to recycle it?",
+                                            [
+                                                { text: "Cancel", style: "cancel" },
+                                                { text: "Recycle", onPress: () => router.push('/(tabs)/recycle') }
+                                            ]
+                                        );
+                                    }}
+                                >
+                                    <Ionicons name="trash-outline" size={24} color={theme.primary} />
+                                    <Text style={[styles.takeBtnText, { color: theme.primary }]}>Expired - Recycle</Text>
+                                </TouchableOpacity>
+                            );
+                        }
 
                         return (
                             <TouchableOpacity
@@ -460,5 +519,46 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         marginLeft: 10,
+    },
+    riskHeader: {
+        marginBottom: 12,
+    },
+    riskBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+        gap: 6,
+    },
+    riskLabel: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    riskDescription: {
+        fontSize: 14,
+        lineHeight: 20,
+        marginBottom: 16,
+    },
+    disposalBox: {
+        padding: 16,
+        borderRadius: 16,
+        marginTop: 8,
+    },
+    disposalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    disposalTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    disposalText: {
+        fontSize: 14,
+        lineHeight: 22,
     },
 });

@@ -42,3 +42,8 @@ export const isNextDoseToday = (times) => {
     // Check if any time is later than now
     return times.some(time => timeToMinutes(time) > currentMinutes);
 };
+
+export const isExpired = (expiryDate) => {
+    if (!expiryDate) return false;
+    return new Date(expiryDate) < new Date();
+};

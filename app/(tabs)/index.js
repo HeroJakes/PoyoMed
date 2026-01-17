@@ -19,7 +19,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Gradients } from '../../constants/theme';
 import { auth, db } from '../../firebase';
-import { getNextDose, isNextDoseToday } from '../../utils/medicineUtils';
+import { getNextDose, isExpired, isNextDoseToday } from '../../utils/medicineUtils';
+import { getRiskMetadata } from '../../utils/riskClassification';
 
 const { width, height } = Dimensions.get('window');
 
@@ -78,7 +79,7 @@ export default function Home() {
       // Filter for Today's Schedule
       const todayMeds = meds.filter(med => {
         if (med.frequency !== 'Daily') return false;
-        if (med.status === 'Expired') return false;
+        if (isExpired(med.expiryDate)) return false;
 
         // Check if next dose is today
         if (!isNextDoseToday(med.times)) return false;
@@ -95,6 +96,23 @@ export default function Home() {
         }
 
         return true;
+      }).sort((a, b) => {
+        const timeA = getNextDose(a.times);
+        const timeB = getNextDose(b.times);
+
+        // Helper to convert time string (e.g., "08:00 AM") to minutes
+        const toMinutes = (timeStr) => {
+          if (!timeStr) return 0;
+          const [time, modifier] = timeStr.split(' ');
+          let [hours, minutes] = time.split(':');
+          hours = parseInt(hours, 10);
+          minutes = parseInt(minutes, 10);
+          if (modifier === 'PM' && hours < 12) hours += 12;
+          if (modifier === 'AM' && hours === 12) hours = 0;
+          return hours * 60 + minutes;
+        };
+
+        return toMinutes(timeA) - toMinutes(timeB);
       });
       setTodaysMedicines(todayMeds);
 
@@ -115,6 +133,38 @@ export default function Home() {
       });
       setExpiringMedicines(expiring);
 
+      // Generate Notifications
+      const newNotifications = [];
+
+      // 1. Expiring Medicines
+      expiring.forEach(med => {
+        newNotifications.push({
+          id: `expiry-${med.id}`,
+          title: 'Medicine Expiring',
+          message: `${med.name} is expiring in ${med.daysLeft} days.`,
+          time: 'Now',
+          icon: 'alert-circle',
+          color: '#FF8C42',
+          unread: true
+        });
+      });
+
+      // 2. Low Stock (Example logic)
+      meds.forEach(med => {
+        if (med.currentStock && med.lowStockThreshold && med.currentStock <= med.lowStockThreshold) {
+          newNotifications.push({
+            id: `stock-${med.id}`,
+            title: 'Low Stock Alert',
+            message: `You are running low on ${med.name}. Only ${med.currentStock} left.`,
+            time: 'Now',
+            icon: 'cube',
+            color: '#FA5252',
+            unread: true
+          });
+        }
+      });
+
+      setNotifications(newNotifications);
       setLoading(false);
     });
 
@@ -184,7 +234,7 @@ export default function Home() {
               onPress={handleNotification}
             >
               <Ionicons name="notifications-outline" size={22} color={theme.text} />
-              <View style={styles.notificationBadge} />
+              {notifications.length > 0 && <View style={styles.notificationBadge} />}
             </TouchableOpacity>
           </View>
 
@@ -305,7 +355,17 @@ function ScheduleCard({ medicine, theme, router }) {
       </View>
       <Text style={[styles.cardTime, { color: theme.icon }]}>{getNextDose(medicine.times)}</Text>
       <Text style={[styles.cardTitle, { color: theme.text }]}>{medicine.name}</Text>
-      <Text style={[styles.cardSubtitle, { color: theme.icon }]} numberOfLines={1}>{medicine.dosage}</Text>
+      <View style={styles.cardFooter}>
+        <Text style={[styles.cardSubtitle, { color: theme.icon }]} numberOfLines={1}>{medicine.dosage}</Text>
+        {medicine.riskLevel && (
+          <View style={[styles.cardRiskBadge, { backgroundColor: getRiskMetadata(medicine.riskLevel).color + '15' }]}>
+            <Ionicons name={getRiskMetadata(medicine.riskLevel).icon} size={10} color={getRiskMetadata(medicine.riskLevel).color} />
+            <Text style={[styles.cardRiskText, { color: getRiskMetadata(medicine.riskLevel).color }]}>
+              {getRiskMetadata(medicine.riskLevel).label.split(' ')[0]}
+            </Text>
+          </View>
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -574,6 +634,27 @@ const styles = StyleSheet.create({
   },
   cardSubtitle: {
     fontSize: 12,
+    flex: 1,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 8,
+  },
+  cardRiskBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 3,
+  },
+  cardRiskText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
   expiringContainer: {
     borderRadius: 25,

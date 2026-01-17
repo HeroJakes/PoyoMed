@@ -21,6 +21,7 @@ import { Colors, Gradients } from '../constants/theme';
 import { auth, db } from '../firebase';
 
 import { scheduleMedicationReminder } from '../utils/notificationUtils';
+import { classifyMedicineRisk } from '../utils/riskClassification';
 
 const { width } = Dimensions.get('window');
 
@@ -175,6 +176,9 @@ export default function AddMedicine() {
                 return;
             }
 
+            // Classify medicine risk using AI
+            const riskLevel = await classifyMedicineRisk(name.trim(), dosage.trim());
+
             const medicineData = {
                 name: name.trim(),
                 dosage: dosage.trim(),
@@ -186,6 +190,7 @@ export default function AddMedicine() {
                 color: selectedColor,
                 expiryDate: expiryDate.toISOString(),
                 status: 'Active', // Default status
+                riskLevel: riskLevel, // AI-classified risk level
                 userId: user.uid,
                 updatedAt: new Date().toISOString(),
             };
@@ -264,10 +269,22 @@ export default function AddMedicine() {
 
                         <Text style={[styles.label, { color: theme.icon, marginTop: 10 }]}>Expiry Date</Text>
                         <TouchableOpacity
-                            onPress={() => setShowExpiryPicker(true)}
-                            style={[styles.inputContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+                            onPress={() => setShowExpiryPicker(!showExpiryPicker)}
+                            style={[
+                                styles.inputContainer,
+                                {
+                                    backgroundColor: theme.card,
+                                    borderColor: showExpiryPicker ? theme.primary : theme.border,
+                                    borderWidth: showExpiryPicker ? 2 : 1
+                                }
+                            ]}
                         >
-                            <Ionicons name="calendar-outline" size={20} color={theme.icon} style={styles.inputIcon} />
+                            <Ionicons
+                                name="calendar-outline"
+                                size={20}
+                                color={showExpiryPicker ? theme.primary : theme.icon}
+                                style={styles.inputIcon}
+                            />
                             <Text style={[styles.inputText, { color: theme.text }]}>
                                 {expiryDate.toLocaleDateString()}
                             </Text>
@@ -283,6 +300,7 @@ export default function AddMedicine() {
                                     if (selectedDate) setExpiryDate(selectedDate);
                                 }}
                                 minimumDate={new Date(2000, 0, 1)} // Allow past dates for detection
+                                textColor={theme.text}
                             />
                         )}
                         {isEstimated && (
@@ -354,8 +372,12 @@ export default function AddMedicine() {
                                         <TouchableOpacity
                                             key={index}
                                             onPress={() => {
-                                                setActiveDoseIndex(index);
-                                                setShowPicker(true);
+                                                if (showPicker && activeDoseIndex === index) {
+                                                    setShowPicker(false);
+                                                } else {
+                                                    setActiveDoseIndex(index);
+                                                    setShowPicker(true);
+                                                }
                                             }}
                                             style={[
                                                 styles.inputContainer,
@@ -384,8 +406,12 @@ export default function AddMedicine() {
                         {frequency !== 'Daily' && (
                             <TouchableOpacity
                                 onPress={() => {
-                                    setActiveDoseIndex(0);
-                                    setShowPicker(true);
+                                    if (showPicker && activeDoseIndex === 0) {
+                                        setShowPicker(false);
+                                    } else {
+                                        setActiveDoseIndex(0);
+                                        setShowPicker(true);
+                                    }
                                 }}
                                 style={[
                                     styles.inputContainer,

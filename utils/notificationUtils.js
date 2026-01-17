@@ -107,3 +107,17 @@ export async function scheduleMedicationReminder(medicine) {
         });
     }
 }
+
+export async function cancelMedicationReminders(medicineId) {
+    try {
+        const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+        for (const notification of scheduled) {
+            const data = notification.content.data;
+            if (data && data.medicineId === medicineId) {
+                await Notifications.cancelScheduledNotificationAsync(notification.identifier);
+            }
+        }
+    } catch (error) {
+        console.error("Error cancelling reminders:", error);
+    }
+}
