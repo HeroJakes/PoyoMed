@@ -1,71 +1,90 @@
 # PoyoMed 💊
+> Saving lives and protecting our environment through AI-powered medicine management.
 
-PoyoMed is a modern, user-friendly mobile application designed to help users manage their medications effectively. Built with React Native and Expo, it provides a seamless experience for tracking dosages, setting reminders, and managing medicine inventory.
+PoyoMed is a premium, AI-driven mobile application designed to bridge the gap between medication management and environmental sustainability. Built with **React Native** and powered by **Google Gemini AI**, PoyoMed doesn't just track your pills—it ensures you use them safely and dispose of them responsibly.
 
-## 🚀 Features
+---
 
-- **Medicine Tracking:** Keep a comprehensive list of all your medications with dosage and frequency details.
-- **Smart Reminders:** Never miss a dose with next-dose tracking and status alerts (Active, Low Stock, Expiring).
-- **Medicine Scanner:** Quickly add new medications by scanning them using your device's camera.
-- **Search & Filter:** Easily find specific medicines or filter by categories like Daily, Weekly, or Supplements.
-- **Dark Mode Support:** Beautiful UI that adapts to your system's light or dark theme.
-- **Cloud Sync:** Powered by Firebase to keep your data safe and accessible.
+## 🌟 Key Features
+
+### 🤖 AI Medicine Scanner (Gemini Powered)
+- **Intelligent Recognition**: Effortlessly scan medicine labels to extract names, dosages, and expiry dates.
+- **Auto-Correction**: Our AI intelligently corrects spelling errors (e.g., "fver" → "Fever") and normalizes medication names.
+- **Smart Date Parsing**: Automatically distinguishes between "Dispensed Date" and "Expiry Date," providing safe estimations when only a dispensed date is available.
+
+### ⚠️ Risk-Aware Management
+- **Safety Classification**: Every medication is automatically classified into **Low**, **Medium**, or **High** risk levels.
+- **Visual Safety Badges**: Quick-glance risk indicators on your dashboard and medicine cards.
+- **Disposal Guidelines**: Integrated expert guidelines on how to safely dispose of different types of medications.
+
+### ♻️ Eco-Recycling Ecosystem
+- **Eco Impact Dashboard**: Track your contribution to a cleaner planet with "Meds Saved" and "CO2 Reduced" metrics.
+- **The Drop-off Bag**: A dedicated space to manage expired or unused medications ready for recycling.
+- **Recycling Point Locator**: Find the nearest certified medicine collection points with real-time navigation.
+
+### 📱 Modern User Experience
+- **Premium Design**: A beautiful, glassmorphism-inspired UI with warm gradients and sleek micro-animations.
+- **Adaptive Theme**: Full support for system-wide Light and Dark modes.
+- **Smart Reminders**: Stay on top of your health with automated next-dose calculation and expiring item alerts.
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Framework:** [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/)
-- **Routing:** [Expo Router](https://docs.expo.dev/router/introduction/) (File-based routing)
-- **Backend:** [Firebase Firestore](https://firebase.google.com/docs/firestore)
+- **Framework:** [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/) (SDK 52)
+- **AI Intelligence:** [Google Gemini Pro Vision](https://deepmind.google/technologies/gemini/) (REST API Integration)
+- **Navigation:** [Expo Router](https://docs.expo.dev/router/introduction/) (v3)
+- **Backend:** [Firebase Firestore](https://firebase.google.com/docs/firestore) & Authentication
+- **Graphics:** [Expo Linear Gradient](https://docs.expo.dev/versions/latest/sdk/linear-gradient/)
 - **Animations:** [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/)
-- **Icons:** [Ionicons](https://ionicons.com/) via `@expo/vector-icons`
-- **Styling:** Custom design system with support for Light/Dark modes and Linear Gradients.
+
+---
 
 ## 📦 Getting Started
 
 ### Prerequisites
-
-- [Node.js](https://nodejs.org/) (LTS version)
-- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
-- [Expo Go](https://expo.dev/go) app on your mobile device or an emulator.
+- **Node.js**: LTS version (v18+)
+- **Expo Go App**: Downloaded on your mobile device (iOS/Android) or an emulator.
+- **Gemini API Key**: Required for the scanner features.
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/HeroJakes/PoyoMed.git
    cd PoyoMed
    ```
 
-2. Install dependencies:
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. Set up Environment Variables:
-   Create a `.env` file in the root directory and add your Firebase configuration (if not already hardcoded in `firebase.js`).
+3. **Environment Setup:**
+   Create a `.env` file in the root directory:
+   ```env
+   EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
+   ```
 
 ### Running the App
-
-Start the development server:
 ```bash
 npx expo start
 ```
 
-- Scan the QR code with **Expo Go** (Android) or the **Camera app** (iOS).
-- Press `a` for Android emulator.
-- Press `i` for iOS simulator.
-- Press `w` for web.
+---
 
 ## 📂 Project Structure
+- `app/`: Routing and main screens (Medicine List, Home, Camera, Recycle).
+- `services/`: AI logic and external API integrations.
+- `utils/`: Core business logic for risk classification and medication utilities.
+- `components/`: Modular UI elements following our design system.
+- `constants/`: Global theme configurations (Colors, Gradients, Fonts).
 
-- `app/`: Main application screens and routing (Expo Router).
-- `components/`: Reusable UI components.
-- `constants/`: Theme colors, gradients, and other constants.
-- `hooks/`: Custom React hooks.
-- `assets/`: Images, fonts, and other static assets.
-- `firebase.js`: Firebase initialization and configuration.
+---
 
 ## 📄 License
+This project is a private hackathon submission for **HeroJakes**. All rights reserved.
 
-This project is private and for personal use.
+---
 
+<p align="center">Made with ❤️ for a Greener World.</p>
