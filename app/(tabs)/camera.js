@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     Dimensions,
     Platform,
     StyleSheet,
@@ -21,6 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Gradients } from '../../constants/theme';
+import { askGemini } from '../../services/aiService';
 
 const { width, height } = Dimensions.get('window');
 const SCAN_AREA_SIZE = width * 0.7;
@@ -29,7 +33,11 @@ export default function CameraScreen() {
     const [permission, requestPermission] = useCameraPermissions();
     const [facing, setFacing] = useState('back');
     const [flash, setFlash] = useState('off');
-    const [isScanning, setIsScanning] = useState(true);
+    const [isScanning, setIsScanning] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisStep, setAnalysisStep] = useState(0);
+    const cameraRef = useRef(null);
+    const router = useRouter();
 
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
@@ -102,74 +110,293 @@ export default function CameraScreen() {
         setFlash(current => (current === 'off' ? 'on' : 'off'));
     };
 
+    const handleCapture = async () => {
+        if (!cameraRef.current || isScanning || isAnalyzing) return;
+
+        try {
+            setIsAnalyzing(true);
+            setAnalysisStep(0);
+
+            const photo = await cameraRef.current.takePictureAsync({
+                quality: 0.5,
+                base64: true,
+            });
+
+            // Simulate steps for better UX
+            setAnalysisStep(1); // Detecting name
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            setAnalysisStep(2); // Reading dosage
+
+            const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions.
+
+Logic for extraction:
+- name: The brand or generic name of the medicine.
+- dosage: Look for phrases like 'Take [X] [unit]' (e.g., 'Take 1 pill' or 'Take 2 tablets'). Use the quantity and unit as the dosage.
+- frequency: One of 'Daily', 'Weekly', 'Monthly', 'As Needed'.
+- timesPerDay: Look for phrases like '[X] times daily', '[X] times a day', or '[X]x daily'. Return ONLY the number (e.g., 2).
+- expiry: 
+    1. Look for 'Expiry Date' or 'EXP'.
+    2. If not found, look for 'Dispensed Date', 'Issued Date', or 'Date:'. 
+    3. If only a dispensed date is found, estimate the expiry: add 1 year for tablets/capsules, or 6 months for liquids/syrups.
+    4. Return the date in YYYY-MM-DD format.
+- isEstimated: Boolean. True if the expiry was estimated from a dispensed date, false if a clear expiry date was found.
+- instructions: Any other usage notes (e.g., 'After food').
+
+If a field is not found, use an empty string (or 1 for timesPerDay, false for isEstimated).`;
+
+            const responseText = await askGemini([
+                prompt,
+                {
+                    inlineData: {
+                        data: photo.base64,
+                        mimeType: "image/jpeg",
+                    },
+                },
+            ]);
+
+            setAnalysisStep(3); // Analyzing frequency
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            const result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+            // Navigate to Add Medicine with pre-filled data
+            router.push({
+                pathname: '/add-medicine',
+                params: {
+                    scannedData: JSON.stringify(result)
+                }
+            });
+        } catch (error) {
+            console.error("Capture Error:", error);
+            Alert.alert("Error", "Failed to extract information from the image. Please try again.");
+        } finally {
+            setIsAnalyzing(false);
+            setAnalysisStep(0);
+        }
+    };
+
+    const pickImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.5,
+                base64: true,
+            });
+
+            if (!result.canceled && result.assets[0].base64) {
+                setIsAnalyzing(true);
+                setAnalysisStep(0);
+
+                // Simulate steps
+                setAnalysisStep(1);
+                await new Promise(resolve => setTimeout(resolve, 600));
+                setAnalysisStep(2);
+
+                const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions.
+
+Logic for extraction:
+- name: The brand or generic name of the medicine.
+- dosage: Look for phrases like 'Take [X] [unit]' (e.g., 'Take 1 pill' or 'Take 2 tablets'). Use the quantity and unit as the dosage.
+- frequency: One of 'Daily', 'Weekly', 'Monthly', 'As Needed'.
+- timesPerDay: Look for phrases like '[X] times daily', '[X] times a day', or '[X]x daily'. Return ONLY the number (e.g., 2).
+- expiry: 
+    1. Look for 'Expiry Date' or 'EXP'.
+    2. If not found, look for 'Dispensed Date', 'Issued Date', or 'Date:'. 
+    3. If only a dispensed date is found, estimate the expiry: add 1 year for tablets/capsules, or 6 months for liquids/syrups.
+    4. Return the date in YYYY-MM-DD format.
+- isEstimated: Boolean. True if the expiry was estimated from a dispensed date, false if a clear expiry date was found.
+- instructions: Any other usage notes (e.g., 'After food').
+
+If a field is not found, use an empty string (or 1 for timesPerDay, false for isEstimated).`;
+
+                const responseText = await askGemini([
+                    prompt,
+                    {
+                        inlineData: {
+                            data: result.assets[0].base64,
+                            mimeType: "image/jpeg",
+                        },
+                    },
+                ]);
+
+                setAnalysisStep(3);
+                await new Promise(resolve => setTimeout(resolve, 400));
+
+                const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+                const aiResult = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+                router.push({
+                    pathname: '/add-medicine',
+                    params: {
+                        scannedData: JSON.stringify(aiResult)
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Pick Image Error:", error);
+            Alert.alert("Error", "Failed to process the selected image.");
+        } finally {
+            setIsAnalyzing(false);
+            setAnalysisStep(0);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <CameraView
+                ref={cameraRef}
                 style={StyleSheet.absoluteFill}
                 facing={facing}
                 enableTorch={flash === 'on'}
-            >
-                {/* Scanning Overlay */}
-                <View style={styles.overlay}>
-                    <View style={styles.topOverlay} />
-                    <View style={styles.middleRow}>
-                        <View style={styles.sideOverlay} />
-                        <View style={styles.scanArea}>
-                            {/* Corner Borders */}
-                            <View style={[styles.corner, styles.topLeft, { borderColor: theme.primary }]} />
-                            <View style={[styles.corner, styles.topRight, { borderColor: theme.primary }]} />
-                            <View style={[styles.corner, styles.bottomLeft, { borderColor: theme.primary }]} />
-                            <View style={[styles.corner, styles.bottomRight, { borderColor: theme.primary }]} />
+            />
 
-                            {/* Scanning Line */}
-                            <Animated.View style={[styles.scanLineContainer, animatedLineStyle]}>
-                                <View style={[styles.scanLine, { backgroundColor: theme.primary }]} />
-                            </Animated.View>
-                        </View>
-                        <View style={styles.sideOverlay} />
+            {/* Scanning Overlay */}
+            <View style={styles.overlay} pointerEvents="none">
+                <View style={styles.topOverlay} />
+                <View style={styles.middleRow}>
+                    <View style={styles.sideOverlay} />
+                    <View style={styles.scanArea}>
+                        {/* Corner Borders */}
+                        <View style={[styles.corner, styles.topLeft, { borderColor: theme.primary }]} />
+                        <View style={[styles.corner, styles.topRight, { borderColor: theme.primary }]} />
+                        <View style={[styles.corner, styles.bottomLeft, { borderColor: theme.primary }]} />
+                        <View style={[styles.corner, styles.bottomRight, { borderColor: theme.primary }]} />
+
+                        {/* Scanning Line */}
+                        <Animated.View style={[styles.scanLineContainer, animatedLineStyle]}>
+                            <View style={[styles.scanLine, { backgroundColor: theme.primary }]} />
+                        </Animated.View>
                     </View>
-                    <View style={styles.bottomOverlay}>
-                        <Text style={styles.instructionText}>Align medicine label within the frame</Text>
-                    </View>
+                    <View style={styles.sideOverlay} />
+                </View>
+                <View style={styles.bottomOverlay}>
+                    <Text style={styles.instructionText}>Align medicine label within the frame</Text>
+                </View>
+            </View>
+
+            {/* Controls */}
+            <SafeAreaView style={styles.controlsContainer}>
+                <View style={styles.topControls}>
+                    <TouchableOpacity style={styles.iconButton} onPress={toggleFlash}>
+                        <Ionicons
+                            name={flash === 'on' ? "flash" : "flash-off"}
+                            size={24}
+                            color="#fff"
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton} onPress={toggleCameraFacing}>
+                        <Ionicons name="camera-reverse-outline" size={26} color="#fff" />
+                    </TouchableOpacity>
                 </View>
 
-                {/* Controls */}
-                <SafeAreaView style={styles.controlsContainer}>
-                    <View style={styles.topControls}>
-                        <TouchableOpacity style={styles.iconButton} onPress={toggleFlash}>
-                            <Ionicons
-                                name={flash === 'on' ? "flash" : "flash-off"}
-                                size={24}
-                                color="#fff"
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.iconButton} onPress={toggleCameraFacing}>
-                            <Ionicons name="camera-reverse-outline" size={26} color="#fff" />
-                        </TouchableOpacity>
-                    </View>
+                <View style={styles.bottomControls}>
+                    <TouchableOpacity
+                        style={styles.galleryButton}
+                        onPress={pickImage}
+                        disabled={isScanning || isAnalyzing}
+                    >
+                        <Ionicons name="images-outline" size={24} color="#fff" />
+                    </TouchableOpacity>
 
-                    <View style={styles.bottomControls}>
-                        <TouchableOpacity style={styles.galleryButton}>
-                            <Ionicons name="images-outline" size={24} color="#fff" />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.captureButton}>
-                            <LinearGradient
-                                colors={gradients.warm}
-                                style={styles.captureGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
+                    <TouchableOpacity
+                        style={styles.captureButton}
+                        onPress={handleCapture}
+                        disabled={isScanning || isAnalyzing}
+                    >
+                        <LinearGradient
+                            colors={gradients.warm}
+                            style={styles.captureGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            {isScanning || isAnalyzing ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
                                 <View style={styles.captureInner} />
-                            </LinearGradient>
-                        </TouchableOpacity>
+                            )}
+                        </LinearGradient>
+                    </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.galleryButton}>
-                            <Ionicons name="help-circle-outline" size={26} color="#fff" />
-                        </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.galleryButton}
+                        onPress={() => {
+                            Alert.alert(
+                                "How to Scan",
+                                "• Align the medicine label within the frame.\n\n• The AI will detect the name, dosage, and expiry date.\n\n• For hospital meds without an expiry date, the AI will use the 'Dispensed Date' to estimate a safe expiry.\n\n• If a medicine is expired, we'll help you recycle it safely!",
+                                [{ text: "Got it!" }]
+                            );
+                        }}
+                    >
+                        <Ionicons name="help-circle-outline" size={26} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+
+            <AnalysisOverlay visible={isAnalyzing} step={analysisStep} theme={theme} />
+        </View>
+    );
+}
+
+function AnalysisOverlay({ visible, step, theme }) {
+    if (!visible) return null;
+
+    const steps = [
+        { id: 0, label: 'Initializing AI engine...', icon: 'flash-outline' },
+        { id: 1, label: 'Detecting medicine name...', icon: 'search-outline' },
+        { id: 2, label: 'Reading dosage information...', icon: 'medkit-outline' },
+        { id: 3, label: 'Analyzing frequency...', icon: 'time-outline' },
+    ];
+
+    return (
+        <View style={styles.analysisContainer}>
+            <Animated.View
+                entering={Animated.FadeIn}
+                exiting={Animated.FadeOut}
+                style={styles.analysisContent}
+            >
+                <View style={styles.analysisHeader}>
+                    <View style={styles.analysisIconContainer}>
+                        <Ionicons name="scan-outline" size={40} color={theme.primary} />
                     </View>
-                </SafeAreaView>
-            </CameraView>
+                    <Text style={[styles.analysisTitle, { color: theme.text }]}>Analyzing...</Text>
+                    <Text style={[styles.analysisSubtitle, { color: theme.icon }]}>
+                        AI is detecting medicine information
+                    </Text>
+                </View>
+
+                <View style={styles.stepsContainer}>
+                    {steps.map((item, index) => {
+                        const isActive = step === item.id;
+                        const isCompleted = step > item.id;
+
+                        return (
+                            <View key={item.id} style={[
+                                styles.stepItem,
+                                isActive && styles.stepItemActive,
+                                { backgroundColor: isActive ? theme.primary + '10' : 'rgba(255,255,255,0.05)' }
+                            ]}>
+                                <View style={styles.stepIconLabel}>
+                                    <Ionicons
+                                        name={isCompleted ? "checkmark-circle" : item.icon}
+                                        size={22}
+                                        color={isCompleted ? "#4CAF50" : (isActive ? theme.primary : theme.icon)}
+                                    />
+                                    <Text style={[
+                                        styles.stepLabel,
+                                        { color: isActive ? theme.text : theme.icon, fontWeight: isActive ? '600' : '400' }
+                                    ]}>
+                                        {item.label}
+                                    </Text>
+                                </View>
+                                {isActive && <ActivityIndicator size="small" color={theme.primary} />}
+                            </View>
+                        );
+                    })}
+                </View>
+            </Animated.View>
         </View>
     );
 }
@@ -368,5 +595,77 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         borderWidth: 2,
         borderColor: 'rgba(255,255,255,0.5)',
+    },
+    analysisContainer: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+        zIndex: 1000,
+    },
+    analysisContent: {
+        width: '100%',
+        backgroundColor: '#fff',
+        borderRadius: 30,
+        padding: 30,
+        alignItems: 'center',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.3,
+                shadowRadius: 20,
+            },
+            android: {
+                elevation: 10,
+            },
+        }),
+    },
+    analysisHeader: {
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    analysisIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255, 140, 66, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    analysisTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    analysisSubtitle: {
+        fontSize: 14,
+        textAlign: 'center',
+    },
+    stepsContainer: {
+        width: '100%',
+        gap: 12,
+    },
+    stepItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        borderRadius: 16,
+        width: '100%',
+    },
+    stepItemActive: {
+        borderWidth: 1,
+        borderColor: 'rgba(255, 140, 66, 0.2)',
+    },
+    stepIconLabel: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    stepLabel: {
+        fontSize: 15,
     },
 });

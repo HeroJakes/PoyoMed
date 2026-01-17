@@ -50,6 +50,10 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
+
+          // Skip if href is null (hidden tab)
+          if (options.href === null) return null;
+
           const label = options.title !== undefined ? options.title : route.name;
           const isFocused = state.index === index;
 
