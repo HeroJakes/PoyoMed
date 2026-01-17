@@ -228,43 +228,47 @@ export default function MedicineDetails() {
                     </View>
 
                     {/* Mark as Taken Button */}
-                    <TouchableOpacity
-                        style={[styles.takeBtn, { backgroundColor: theme.primary }]}
-                        onPress={async () => {
-                            try {
-                                const user = auth.currentUser;
-                                if (!user) return;
+                    {(() => {
+                        const nextDoseTime = getNextDose(medicine.times);
+                        const today = new Date().toISOString().split('T')[0];
+                        const expectedTakenEntry = `${today} ${nextDoseTime}`;
+                        const isTaken = medicine.takenHistory && medicine.takenHistory.includes(expectedTakenEntry);
 
-                                // Logic to determine "which" dose is being taken.
-                                // For simplicity, we'll mark the *next scheduled dose* for today as taken.
-                                // If no specific time, we just log the current timestamp.
+                        return (
+                            <TouchableOpacity
+                                style={[
+                                    styles.takeBtn,
+                                    { backgroundColor: isTaken ? theme.success : theme.primary, opacity: isTaken ? 0.8 : 1 }
+                                ]}
+                                disabled={isTaken}
+                                onPress={async () => {
+                                    try {
+                                        const user = auth.currentUser;
+                                        if (!user) return;
 
-                                const nextDoseTime = getNextDose(medicine.times);
-                                const today = new Date().toISOString().split('T')[0];
-                                let takenEntry = new Date().toISOString(); // Default to now
+                                        let takenEntry = new Date().toISOString();
 
-                                if (nextDoseTime !== 'No more doses today' && nextDoseTime !== 'No doses scheduled') {
-                                    // Construct the full string for the taken dose: "YYYY-MM-DD HH:mm AM/PM"
-                                    // This matches how we will filter it later.
-                                    takenEntry = `${today} ${nextDoseTime}`;
-                                }
+                                        if (nextDoseTime !== 'No more doses today' && nextDoseTime !== 'No doses scheduled') {
+                                            takenEntry = `${today} ${nextDoseTime}`;
+                                        }
 
-                                await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
-                                    takenHistory: arrayUnion(takenEntry)
-                                });
+                                        await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
+                                            takenHistory: arrayUnion(takenEntry)
+                                        });
 
-                                Alert.alert("Success", "Medicine marked as taken!");
-                                router.back();
-
-                            } catch (error) {
-                                console.error("Error marking as taken:", error);
-                                Alert.alert("Error", "Failed to mark as taken");
-                            }
-                        }}
-                    >
-                        <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
-                        <Text style={styles.takeBtnText}>Mark as Taken</Text>
-                    </TouchableOpacity>
+                                        Alert.alert("Success", "Medicine marked as taken!");
+                                        // Stay on page to see the green button
+                                    } catch (error) {
+                                        console.error("Error marking as taken:", error);
+                                        Alert.alert("Error", "Failed to mark as taken");
+                                    }
+                                }}
+                            >
+                                <Ionicons name={isTaken ? "checkmark-done-circle-outline" : "checkmark-circle-outline"} size={24} color="#fff" />
+                                <Text style={styles.takeBtnText}>{isTaken ? "Taken" : "Mark as Taken"}</Text>
+                            </TouchableOpacity>
+                        );
+                    })()}
                 </ScrollView>
             </SafeAreaView>
         </View>
