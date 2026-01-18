@@ -72,6 +72,7 @@ export async function scheduleMedicationReminder(medicine) {
     // A robust solution would require fetching existing IDs and cancelling them first.
 
     if (!medicine.times || medicine.times.length === 0) return;
+    if (medicine.status === 'In Bag' || medicine.status === 'Recycled') return;
 
     for (const timeStr of medicine.times) {
         const match = timeStr.match(/(\d+):(\d+)\s*([AP]M)/i);
