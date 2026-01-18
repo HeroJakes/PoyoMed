@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
     Dimensions,
@@ -26,6 +26,7 @@ import { Colors, Gradients } from '../../constants/theme';
 import { auth, db } from '../../firebase';
 
 import { getNextDose } from '../../utils/medicineUtils';
+import { cancelMedicationReminders } from '../../utils/notificationUtils';
 import { getRiskMetadata } from '../../utils/riskClassification';
 
 const { width, height } = Dimensions.get('window');
@@ -61,7 +62,8 @@ export default function Medicines() {
 
     const categories = ['All', 'Daily', 'Weekly', 'As Needed', 'Supplements'];
 
-    const calculateStatus = (expiryDate) => {
+    const calculateStatus = (expiryDate, currentStatus) => {
+        if (currentStatus === 'In Bag' || currentStatus === 'Recycled') return currentStatus;
         if (!expiryDate) return 'Active';
         const today = new Date();
         const expiry = new Date(expiryDate);
@@ -86,10 +88,33 @@ export default function Medicines() {
                 return {
                     id: doc.id,
                     ...data,
-                    status: calculateStatus(data.expiryDate), // Override status with calculated one
-                    nextDose: getNextDose(data.times) // Calculate next dose dynamically
+                    status: calculateStatus(data.expiryDate, data.status),
+                    nextDose: getNextDose(data.times)
                 };
             });
+
+            // Auto-update expired meds to 'In Bag' in Firestore
+            meds.forEach(async (med) => {
+                if (med.expiryDate &&
+                    new Date(med.expiryDate) < new Date() &&
+                    med.status !== 'In Bag' &&
+                    med.status !== 'Recycled') {
+
+                    try {
+                        const medRef = doc(db, 'users', user.uid, 'medicines', med.id);
+                        await updateDoc(medRef, {
+                            status: 'In Bag',
+                            autoExpired: true,
+                            updatedAt: new Date().toISOString()
+                        });
+                        // Cancel reminders for this item
+                        await cancelMedicationReminders(med.id);
+                    } catch (err) {
+                        console.error("Error auto-expiring medicine:", err);
+                    }
+                }
+            });
+
             setMedications(meds);
             setLoading(false);
         }, (error) => {
@@ -103,7 +128,8 @@ export default function Medicines() {
     const filteredMedications = medications.filter(med => {
         const matchesSearch = med.name.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = activeCategory === 'All' || med.frequency === activeCategory;
-        return matchesSearch && matchesCategory;
+        const isCurrentlyActive = med.status !== 'In Bag' && med.status !== 'Recycled';
+        return matchesSearch && matchesCategory && isCurrentlyActive;
     });
 
     const overlayStyle = useAnimatedStyle(() => ({

@@ -78,6 +78,7 @@ export default function Home() {
 
       // Filter for Today's Schedule
       const todayMeds = meds.filter(med => {
+        if (med.status === 'In Bag' || med.status === 'Recycled') return false;
         if (med.frequency !== 'Daily') return false;
         if (isExpired(med.expiryDate)) return false;
 
@@ -118,6 +119,7 @@ export default function Home() {
 
       // Filter for Expiring Soon (<= 7 days)
       const expiring = meds.filter(med => {
+        if (med.status === 'In Bag' || med.status === 'Recycled') return false;
         if (!med.expiryDate) return false;
         const today = new Date();
         const expiry = new Date(med.expiryDate);
@@ -151,6 +153,7 @@ export default function Home() {
 
       // 2. Low Stock (Example logic)
       meds.forEach(med => {
+        if (med.status === 'In Bag' || med.status === 'Recycled') return;
         if (med.currentStock && med.lowStockThreshold && med.currentStock <= med.lowStockThreshold) {
           newNotifications.push({
             id: `stock-${med.id}`,
