@@ -1,6 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import * as Linking from 'expo-linking';
+import { useRouter } from 'expo-router';
+import { collection, doc, getDocs, onSnapshot, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
@@ -13,7 +16,9 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { DROP_OFF_LOCATIONS, FALLBACK_USER_LOCATION } from '../../constants/dropOffLocations';
 import { Colors, Gradients } from '../../constants/theme';
+import { auth, db } from '../../firebase';
 
 const { width } = Dimensions.get('window');
 
@@ -21,71 +26,127 @@ const { width } = Dimensions.get('window');
 const ECO_GRADIENT = Gradients.warm;
 const WATER_GRADIENT = Gradients.sunny;
 
+// Haversine formula to calculate distance between two points in km
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        ;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    return d.toFixed(1);
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+}
+
 export default function RecycleScreen() {
+    const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
     const gradients = Gradients;
 
+    const [itemsRecycledCount, setItemsRecycledCount] = useState(0);
+    const [readyForRecycle, setReadyForRecycle] = useState([]);
+    const [locations, setLocations] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const checkAndPopulate = async () => {
+            try {
+                const q = query(collection(db, 'dropOffLocations'));
+                const snapshot = await getDocs(q);
+                if (snapshot.empty) {
+                    console.log('Populating dropOffLocations...');
+                    for (const location of DROP_OFF_LOCATIONS) {
+                        await setDoc(doc(db, 'dropOffLocations', location.id), location);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking locations:', error);
+            }
+        };
+        checkAndPopulate();
+    }, []);
+
+    useEffect(() => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        // Query for items ready to be recycled
+        const qReady = query(
+            collection(db, 'users', user.uid, 'medicines'),
+            where('status', '==', 'In Bag')
+        );
+
+        // Query for items already recycled to get the count
+        const qRecycled = query(
+            collection(db, 'users', user.uid, 'medicines'),
+            where('status', '==', 'Recycled')
+        );
+
+        const unsubReady = onSnapshot(qReady, (snapshot) => {
+            const meds = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setReadyForRecycle(meds);
+            setIsLoading(false);
+        });
+
+        const unsubRecycled = onSnapshot(qRecycled, (snapshot) => {
+            setItemsRecycledCount(snapshot.size);
+        });
+
+        // Query for collection points
+        const qLocs = query(collection(db, 'dropOffLocations'));
+        const unsubLocs = onSnapshot(qLocs, (snapshot) => {
+            const locs = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setLocations(locs.length > 0 ? locs : DROP_OFF_LOCATIONS);
+        });
+
+        return () => {
+            unsubReady();
+            unsubRecycled();
+            unsubLocs();
+        };
+    }, []);
+
+    const recyclingPoints = (locations.length > 0 ? locations : DROP_OFF_LOCATIONS).map(point => ({
+        ...point,
+        distance: `${calculateDistance(
+            FALLBACK_USER_LOCATION.latitude,
+            FALLBACK_USER_LOCATION.longitude,
+            point.latitude,
+            point.longitude
+        )} km`,
+        icon: point.id.includes('kl') ? 'business' : 'medical'
+    })).sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+
     const handlePointPress = (point) => {
+        const label = encodeURIComponent(point.name);
+        const url = Platform.select({
+            ios: `maps:0,0?q=${label}@${point.latitude},${point.longitude}`,
+            android: `geo:0,0?q=${point.latitude},${point.longitude}(${label})`
+        });
+
         Alert.alert(
-            'Recycling Point',
-            `Opening ${point.name} in Maps...\n\nAddress: ${point.address}`
+            'Open Maps',
+            `Do you want to navigate to ${point.name}?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Open Maps', onPress: () => Linking.openURL(url) }
+            ]
         );
     };
-
-    const handleGuidePress = (title) => {
-        Alert.alert('Recycling Guide', `More information about "${title}" will be available soon!`);
-    };
-
-    const recyclingPoints = [
-        {
-            id: '1',
-            name: 'Poyo Pharmacy',
-            address: '123 Health St, Medical District',
-            distance: '0.8 km',
-            icon: 'medical',
-            hours: '8:00 AM - 10:00 PM',
-            badge: 'Fast Service'
-        },
-        {
-            id: '2',
-            name: 'City General Hospital',
-            address: '456 Care Ave, Downtown',
-            distance: '2.4 km',
-            icon: 'business',
-            hours: '24 Hours',
-            badge: 'Official'
-        },
-        {
-            id: '3',
-            name: 'Eco-Med Center',
-            address: '789 Green Rd, North Side',
-            distance: '3.1 km',
-            icon: 'leaf',
-            hours: '9:00 AM - 6:00 PM',
-            badge: 'Eco-Friendly'
-        }
-    ];
-
-    const [itemsRecycledCount, setItemsRecycledCount] = useState(12);
-    const [readyForRecycle, setReadyForRecycle] = useState([
-        {
-            id: '1',
-            name: 'Aspirin',
-            status: 'Expired 2 days ago',
-            color: theme.danger,
-            icon: 'alert-circle',
-            risk: 'Medium'
-        },
-        {
-            id: '2',
-            name: 'Cough Syrup',
-            status: 'Expiring in 3 days',
-            color: theme.warning,
-            icon: 'time',
-            risk: 'Low'
-        }
-    ]);
 
     const handleRecycle = (item) => {
         Alert.alert(
@@ -95,14 +156,37 @@ export default function RecycleScreen() {
                 { text: "Not yet", style: "cancel" },
                 {
                     text: "Yes, I have",
-                    onPress: () => {
-                        setReadyForRecycle(prev => prev.filter(i => i.id !== item.id));
-                        setItemsRecycledCount(prev => prev + 1);
+                    onPress: async () => {
+                        try {
+                            const user = auth.currentUser;
+                            if (!user) return;
+
+                            const medRef = doc(db, 'users', user.uid, 'medicines', item.id);
+                            await updateDoc(medRef, {
+                                status: 'Recycled',
+                                recycledAt: new Date().toISOString()
+                            });
+                        } catch (error) {
+                            console.error("Error updating medicine status:", error);
+                            Alert.alert('Error', 'Failed to update medicine status. Please try again.');
+                        }
                     }
                 }
             ]
         );
     };
+
+    const getEcoLevel = (count) => {
+        if (count < 5) return { title: 'Level 1: Eco Rookie', sub: `${5 - count} more to Level 2`, progress: (count / 5) * 100 };
+        if (count < 15) return { title: 'Level 2: Eco Helper', sub: `${15 - count} more to Level 3`, progress: ((count - 5) / 10) * 100 };
+        if (count < 30) return { title: 'Level 3: Eco Warrior', sub: `${30 - count} more to Master`, progress: ((count - 15) / 15) * 100 };
+        return { title: 'Level 4: Eco Master', sub: 'Maximum Level Reached!', progress: 100 };
+    };
+    const handleGuidePress = (topic) => {
+        Alert.alert("Eco Guide", `Learn more about ${topic} in our upcoming sustainability guide!`);
+    };
+
+    const ecoLevel = getEcoLevel(itemsRecycledCount);
 
     return (
         <View style={styles.container}>
@@ -150,11 +234,11 @@ export default function RecycleScreen() {
 
                             <View style={styles.progressContainer}>
                                 <View style={styles.progressHeader}>
-                                    <Text style={styles.progressText}>Level 3: Eco Warrior</Text>
-                                    <Text style={styles.progressSubtext}>80% to Master</Text>
+                                    <Text style={styles.progressText}>{ecoLevel.title}</Text>
+                                    <Text style={styles.progressSubtext}>{ecoLevel.sub}</Text>
                                 </View>
                                 <View style={styles.progressBarBg}>
-                                    <View style={[styles.progressBarFill, { width: '80%' }]} />
+                                    <View style={[styles.progressBarFill, { width: `${ecoLevel.progress}%` }]} />
                                 </View>
                             </View>
                         </LinearGradient>
@@ -166,22 +250,42 @@ export default function RecycleScreen() {
                         <View style={styles.badgeCount}>
                             <Text style={styles.badgeText}>{readyForRecycle.length}</Text>
                         </View>
+                        <TouchableOpacity
+                            style={[styles.requestBtn, { backgroundColor: theme.primary }]}
+                            onPress={() => router.push('/request-recycle')}
+                        >
+                            <Ionicons name="paper-plane" size={14} color="#FFF" />
+                            <Text style={styles.requestBtnText}>Request Pick-up</Text>
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.bagContainer}>
                         {readyForRecycle.length > 0 ? (
                             readyForRecycle.map((item) => (
                                 <View key={item.id} style={[styles.bagItem, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-                                    <View style={[styles.bagIconBox, { backgroundColor: item.color + '15' }]}>
-                                        <Ionicons name={item.icon} size={24} color={item.color} />
-                                    </View>
-                                    <View style={styles.bagContent}>
-                                        <Text style={[styles.bagName, { color: theme.text }]}>{item.name}</Text>
-                                        <Text style={[styles.bagStatus, { color: item.color }]}>{item.status}</Text>
-                                        <View style={[styles.riskTag, { backgroundColor: theme.background }]}>
-                                            <Text style={[styles.riskTagText, { color: theme.icon }]}>{item.risk} Risk</Text>
+                                    <TouchableOpacity
+                                        style={styles.bagTouchArea}
+                                        onPress={() => router.push({
+                                            pathname: '/medicine-details',
+                                            params: {
+                                                id: item.id,
+                                                medicine: JSON.stringify(item)
+                                            }
+                                        })}
+                                    >
+                                        <View style={[styles.bagIconBox, { backgroundColor: (item.color || theme.primary) + '15' }]}>
+                                            <Ionicons name={item.icon || 'medical'} size={24} color={item.color || theme.primary} />
                                         </View>
-                                    </View>
+                                        <View style={styles.bagContent}>
+                                            <Text style={[styles.bagName, { color: theme.text }]}>{item.name}</Text>
+                                            <Text style={[styles.bagStatus, { color: item.status === 'Expired' ? theme.danger : theme.warning }]}>
+                                                {item.status}
+                                            </Text>
+                                            <View style={[styles.riskTag, { backgroundColor: theme.background }]}>
+                                                <Text style={[styles.riskTagText, { color: theme.icon }]}>{(item.riskLevel || 'Medium').toUpperCase()} Risk</Text>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
                                     <TouchableOpacity
                                         style={[styles.dropOffBtn, { backgroundColor: theme.primary }]}
                                         onPress={() => handleRecycle(item)}
@@ -418,6 +522,20 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
     },
+    requestBtn: {
+        marginLeft: 'auto',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        gap: 6
+    },
+    requestBtnText: {
+        color: '#FFF',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
     bagContainer: {
         marginBottom: 30,
     },
@@ -446,6 +564,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,
+    },
+    bagTouchArea: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
     },
     bagContent: {
         flex: 1,
