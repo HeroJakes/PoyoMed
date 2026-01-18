@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import { addDoc, collection, doc, getDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
     Alert,
@@ -50,6 +50,36 @@ export default function ProfileScreen() {
 
     const handleSettingPress = (label) => {
         Alert.alert('Settings', `You selected: ${label}`);
+    };
+
+    const handleClearAllData = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        Alert.alert(
+            "Clear All Data",
+            "Are you sure you want to delete ALL your medication data? This action cannot be undone.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete All",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const querySnapshot = await getDocs(collection(db, 'users', user.uid, 'medicines'));
+                            const deletePromises = querySnapshot.docs.map(document =>
+                                deleteDoc(doc(db, 'users', user.uid, 'medicines', document.id))
+                            );
+                            await Promise.all(deletePromises);
+                            Alert.alert("Success", "All medication data has been cleared.");
+                        } catch (error) {
+                            console.error("Error clearing data:", error);
+                            Alert.alert("Error", "Failed to clear data. Please try again.");
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const handleLogout = () => {
@@ -147,6 +177,7 @@ export default function ProfileScreen() {
                                             color: '#FF6B6B',
                                             icon: 'medical',
                                             status: 'Active',
+                                            riskLevel: 'medium',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -160,6 +191,7 @@ export default function ProfileScreen() {
                                             color: '#4ECDC4',
                                             icon: 'flask',
                                             status: 'Expiring',
+                                            riskLevel: 'high',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -173,6 +205,7 @@ export default function ProfileScreen() {
                                             color: '#FFD93D',
                                             icon: 'nutrition',
                                             status: 'Active',
+                                            riskLevel: 'low',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -186,6 +219,7 @@ export default function ProfileScreen() {
                                             color: '#FF8C42',
                                             icon: 'bandage',
                                             status: 'Expired',
+                                            riskLevel: 'medium',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -199,6 +233,7 @@ export default function ProfileScreen() {
                                             color: '#6C5CE7',
                                             icon: 'heart',
                                             status: 'Low Stock',
+                                            riskLevel: 'medium',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -212,6 +247,7 @@ export default function ProfileScreen() {
                                             color: '#00D2FC',
                                             icon: 'medical',
                                             status: 'Active',
+                                            riskLevel: 'medium',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -225,6 +261,7 @@ export default function ProfileScreen() {
                                             color: '#845EC2',
                                             icon: 'fitness',
                                             status: 'Active',
+                                            riskLevel: 'medium',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -238,6 +275,7 @@ export default function ProfileScreen() {
                                             color: '#D65DB1',
                                             icon: 'flask',
                                             status: 'Low Stock',
+                                            riskLevel: 'medium',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -251,6 +289,7 @@ export default function ProfileScreen() {
                                             color: '#FF9671',
                                             icon: 'medkit',
                                             status: 'Active',
+                                            riskLevel: 'medium',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -264,6 +303,7 @@ export default function ProfileScreen() {
                                             color: '#FFC75F',
                                             icon: 'leaf',
                                             status: 'Active',
+                                            riskLevel: 'low',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -277,6 +317,7 @@ export default function ProfileScreen() {
                                             color: '#F9F871',
                                             icon: 'water',
                                             status: 'Low Stock',
+                                            riskLevel: 'high',
                                             createdAt: new Date().toISOString()
                                         },
                                         {
@@ -290,6 +331,7 @@ export default function ProfileScreen() {
                                             color: '#FF6F91',
                                             icon: 'heart-circle',
                                             status: 'Expired',
+                                            riskLevel: 'medium',
                                             createdAt: new Date().toISOString()
                                         }
                                         , {
@@ -396,6 +438,12 @@ export default function ProfileScreen() {
                                         Alert.alert('Error', 'Failed to add dummy data');
                                     }
                                 }}
+                            />
+                            <SettingItem
+                                icon="trash-outline"
+                                label="Clear All Medicine Data"
+                                theme={theme}
+                                onPress={handleClearAllData}
                             />
                             <View style={[styles.divider, { backgroundColor: theme.border }]} />
                             <SettingItem
