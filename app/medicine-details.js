@@ -9,6 +9,7 @@ import { Colors, Gradients } from '../constants/theme';
 import { auth, db } from '../firebase';
 
 import { getNextDose, isExpired } from '../utils/medicineUtils';
+import { cancelMedicationReminders } from '../utils/notificationUtils';
 import { getRiskMetadata } from '../utils/riskClassification';
 
 const { width } = Dimensions.get('window');
@@ -263,69 +264,112 @@ export default function MedicineDetails() {
                             </View>
                         </View>
                     )}
-
                     {/* Action Button */}
                     {(() => {
                         const nextDoseTime = getNextDose(medicine.times);
                         const today = new Date().toISOString().split('T')[0];
                         const expectedTakenEntry = `${today} ${nextDoseTime}`;
                         const isTaken = medicine.takenHistory && medicine.takenHistory.includes(expectedTakenEntry);
+                        const isRecycling = medicine.status === 'In Bag' || medicine.status === 'Recycled';
+
+                        if (isRecycling) {
+                            return (
+                                <View style={[styles.takeBtn, { backgroundColor: theme.success + '15', elevation: 0, shadowOpacity: 0 }]}>
+                                    <Ionicons name="leaf" size={24} color={theme.success} />
+                                    <Text style={[styles.takeBtnText, { color: theme.success }]}>Added to Recycling</Text>
+                                </View>
+                            );
+                        }
 
                         // Check if medicine is expired
                         if (isExpired(medicine.expiryDate)) {
                             return (
                                 <TouchableOpacity
-                                    style={[styles.takeBtn, { backgroundColor: theme.pastelOrange }]}
-                                    onPress={() => {
-                                        Alert.alert(
-                                            "Expired Medicine",
-                                            "This medicine has expired. Please do not take it. Would you like to recycle it?",
-                                            [
-                                                { text: "Cancel", style: "cancel" },
-                                                { text: "Recycle", onPress: () => router.push('/(tabs)/recycle') }
-                                            ]
-                                        );
+                                    style={[styles.takeBtn, { backgroundColor: theme.danger }]}
+                                    onPress={async () => {
+                                        try {
+                                            const user = auth.currentUser;
+                                            if (!user) return;
+                                            await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
+                                                status: 'In Bag',
+                                                recycledAt: new Date().toISOString()
+                                            });
+                                            await cancelMedicationReminders(medicine.id);
+                                            Alert.alert("Success", "Medicine added to recycling bag!");
+                                        } catch (error) {
+                                            console.error("Error recycling:", error);
+                                        }
                                     }}
                                 >
-                                    <Ionicons name="trash-outline" size={24} color={theme.primary} />
-                                    <Text style={[styles.takeBtnText, { color: theme.primary }]}>Expired - Recycle</Text>
+                                    <Ionicons name="trash-outline" size={24} color="#fff" />
+                                    <Text style={styles.takeBtnText}>Expired - Add to Bag</Text>
                                 </TouchableOpacity>
                             );
                         }
 
                         return (
-                            <TouchableOpacity
-                                style={[
-                                    styles.takeBtn,
-                                    { backgroundColor: isTaken ? theme.success : theme.primary, opacity: isTaken ? 0.8 : 1 }
-                                ]}
-                                disabled={isTaken}
-                                onPress={async () => {
-                                    try {
-                                        const user = auth.currentUser;
-                                        if (!user) return;
+                            <View style={styles.buttonRow}>
+                                <TouchableOpacity
+                                    style={[styles.takeBtn, { flex: 2, backgroundColor: isTaken ? theme.success : theme.primary, opacity: isTaken ? 0.8 : 1 }]}
+                                    disabled={isTaken}
+                                    onPress={async () => {
+                                        try {
+                                            const user = auth.currentUser;
+                                            if (!user) return;
 
-                                        let takenEntry = new Date().toISOString();
+                                            let takenEntry = new Date().toISOString();
 
-                                        if (nextDoseTime !== 'No more doses today' && nextDoseTime !== 'No doses scheduled') {
-                                            takenEntry = `${today} ${nextDoseTime}`;
+                                            if (nextDoseTime !== 'No more doses today' && nextDoseTime !== 'No doses scheduled') {
+                                                takenEntry = `${today} ${nextDoseTime}`;
+                                            }
+
+                                            await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
+                                                takenHistory: arrayUnion(takenEntry)
+                                            });
+
+                                            Alert.alert("Success", "Medicine marked as taken!");
+                                        } catch (error) {
+                                            console.error("Error marking as taken:", error);
+                                            Alert.alert("Error", "Failed to mark as taken");
                                         }
+                                    }}
+                                >
+                                    <Ionicons name={isTaken ? "checkmark-done-circle-outline" : "checkmark-circle-outline"} size={24} color="#fff" />
+                                    <Text style={styles.takeBtnText}>{isTaken ? "Taken" : "Mark as Taken"}</Text>
+                                </TouchableOpacity>
 
-                                        await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
-                                            takenHistory: arrayUnion(takenEntry)
-                                        });
-
-                                        Alert.alert("Success", "Medicine marked as taken!");
-                                        // Stay on page to see the green button
-                                    } catch (error) {
-                                        console.error("Error marking as taken:", error);
-                                        Alert.alert("Error", "Failed to mark as taken");
-                                    }
-                                }}
-                            >
-                                <Ionicons name={isTaken ? "checkmark-done-circle-outline" : "checkmark-circle-outline"} size={24} color="#fff" />
-                                <Text style={styles.takeBtnText}>{isTaken ? "Taken" : "Mark as Taken"}</Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.recycleSmallBtn, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+                                    onPress={async () => {
+                                        Alert.alert(
+                                            "Recycle Medicine",
+                                            "No longer need this medicine? Add it to your recycling bag.",
+                                            [
+                                                { text: "Cancel", style: "cancel" },
+                                                {
+                                                    text: "Add to Bag",
+                                                    onPress: async () => {
+                                                        try {
+                                                            const user = auth.currentUser;
+                                                            if (!user) return;
+                                                            await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
+                                                                status: 'In Bag',
+                                                                recycledAt: new Date().toISOString()
+                                                            });
+                                                            await cancelMedicationReminders(medicine.id);
+                                                            Alert.alert("Success", "Added to recycling bag!");
+                                                        } catch (error) {
+                                                            console.error("Error recycling:", error);
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        );
+                                    }}
+                                >
+                                    <Ionicons name="leaf-outline" size={24} color={theme.primary} />
+                                </TouchableOpacity>
+                            </View>
                         );
                     })()}
                 </ScrollView>
@@ -513,6 +557,23 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 4,
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 20,
+    },
+    recycleSmallBtn: {
+        width: 56,
+        height: 56,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 2,
     },
     takeBtnText: {
         color: '#fff',
