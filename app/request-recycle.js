@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { addDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -11,6 +11,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     useColorScheme,
     View
@@ -32,6 +33,9 @@ export default function RequestRecycleScreen() {
     const [locations, setLocations] = useState([]);
     const [selectedMeds, setSelectedMeds] = useState([]);
     const [selectedPoint, setSelectedPoint] = useState(null);
+    const [address, setAddress] = useState('');
+    const [pickupTime, setPickupTime] = useState('');
+    const [contactNumber, setContactNumber] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,6 +45,21 @@ export default function RequestRecycleScreen() {
             router.replace('/login');
             return;
         }
+
+        // Fetch User Profile for Auto-fill
+        const fetchProfile = async () => {
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    if (data.address) setAddress(data.address);
+                    if (data.phone) setContactNumber(data.phone);
+                }
+            } catch (error) {
+                console.error("Error fetching profile for auto-fill:", error);
+            }
+        };
+        fetchProfile();
 
         // Fetch Medicines - Only those currently in the "Drop-off Bag"
         const qMeds = query(
@@ -93,6 +112,16 @@ export default function RequestRecycleScreen() {
             return;
         }
 
+        if (!selectedPoint) {
+            Alert.alert('Selection Required', 'Please select a collection point.');
+            return;
+        }
+
+        if (!address.trim() || !pickupTime.trim() || !contactNumber.trim()) {
+            Alert.alert('Missing Details', 'Please fill in all pickup details.');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const user = auth.currentUser;
@@ -103,6 +132,11 @@ export default function RequestRecycleScreen() {
                 medicineIds: selectedMeds,
                 pointId: selectedPoint,
                 pointName: selectedPointData.name,
+                pickupDetails: {
+                    address: address.trim(),
+                    time: pickupTime.trim(),
+                    contact: contactNumber.trim(),
+                },
                 status: 'Pending',
                 requestId: `REC-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
                 createdAt: new Date().toISOString()
@@ -110,20 +144,19 @@ export default function RequestRecycleScreen() {
 
             await addDoc(collection(db, 'recyclingRequests'), requestData);
 
-            // Update all selected medicines to 'Recycled' status
+            // Update all selected medicines to track this request
             const updatePromises = selectedMeds.map(medId => {
                 const medRef = doc(db, 'users', user.uid, 'medicines', medId);
                 return updateDoc(medRef, {
-                    status: 'In Bag',
-                    addedToBagAt: new Date().toISOString(),
-                    requestId: requestData.requestId
+                    requestId: requestData.requestId,
+                    requestedAt: new Date().toISOString()
                 });
             });
             await Promise.all(updatePromises);
 
             Alert.alert(
                 'Request Submitted!',
-                `Your recycling request (${requestData.requestId}) has been received. Please drop off your items at ${selectedPointData.name}.`,
+                `Your recycling pick-up request (${requestData.requestId}) has been received for ${selectedPointData.name}. Our rider will contact you soon.`,
                 [{ text: 'Great!', onPress: () => router.back() }]
             );
         } catch (error) {
@@ -253,6 +286,48 @@ export default function RequestRecycleScreen() {
                             ))}
                         </View>
                     </View>
+
+                    {/* Step 3: Pickup Details */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={[styles.stepDot, { backgroundColor: theme.primary }]}>
+                                <Text style={styles.stepNum}>3</Text>
+                            </View>
+                            <Text style={[styles.sectionTitle, { color: theme.text }]}>Pickup Details</Text>
+                        </View>
+
+                        <View style={[styles.formContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                            <Text style={[styles.label, { color: theme.icon }]}>Pickup Address</Text>
+                            <TextInput
+                                style={[styles.input, styles.textArea, { color: theme.text, borderColor: theme.border }]}
+                                placeholder="Enter your full pickup address..."
+                                placeholderTextColor={theme.icon + '80'}
+                                multiline
+                                numberOfLines={3}
+                                value={address}
+                                onChangeText={setAddress}
+                            />
+
+                            <Text style={[styles.label, { color: theme.icon, marginTop: 15 }]}>Preferred Time Window</Text>
+                            <TextInput
+                                style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+                                placeholder="e.g. Tomorrow, 2pm - 4pm"
+                                placeholderTextColor={theme.icon + '80'}
+                                value={pickupTime}
+                                onChangeText={setPickupTime}
+                            />
+
+                            <Text style={[styles.label, { color: theme.icon, marginTop: 15 }]}>Contact Number</Text>
+                            <TextInput
+                                style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+                                placeholder="Enter phone number for rider"
+                                placeholderTextColor={theme.icon + '80'}
+                                keyboardType="phone-pad"
+                                value={contactNumber}
+                                onChangeText={setContactNumber}
+                            />
+                        </View>
+                    </View>
                 </ScrollView>
 
                 {/* Submit Footer */}
@@ -367,6 +442,27 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    formContainer: {
+        padding: 20,
+        borderRadius: 24,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    input: {
+        height: 50,
+        borderRadius: 12,
+        borderWidth: 1,
+        paddingHorizontal: 15,
+        fontSize: 15,
+    },
+    textArea: {
+        height: 100,
+        paddingTop: 12,
+        textAlignVertical: 'top',
     },
     pointsGrid: {
         flexDirection: 'row',
