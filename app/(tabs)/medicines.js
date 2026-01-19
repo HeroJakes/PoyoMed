@@ -168,7 +168,10 @@ export default function Medicines() {
 
             <SafeAreaView style={{ flex: 1 }}>
                 <View style={styles.header}>
-                    <Text style={[styles.title, { color: darkText }]}>My Medicines</Text>
+                    <View>
+                        <Text style={[styles.title, { color: darkText }]}>My Medicines</Text>
+                        <Text style={[styles.subtitle, { color: theme.icon }]}>Manage your personal medicine cabinet</Text>
+                    </View>
                     <TouchableOpacity
                         onPress={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
                         style={[styles.notificationBtn, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}
@@ -188,6 +191,11 @@ export default function Medicines() {
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                         />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                                <Ionicons name="close-circle" size={20} color={theme.icon} />
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
 
@@ -411,12 +419,17 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingTop: 10,
+        paddingTop: 20,
         marginBottom: 15,
     },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
+    },
+    subtitle: {
+        fontSize: 14,
+        marginTop: 2,
+        fontWeight: '500',
     },
     notificationBtn: {
         width: 44,
@@ -453,6 +466,9 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         fontSize: 16,
+    },
+    clearButton: {
+        padding: 5,
     },
     categoriesScroll: {
         paddingHorizontal: 20,

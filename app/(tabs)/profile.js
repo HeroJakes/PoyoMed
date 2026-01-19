@@ -49,7 +49,11 @@ export default function ProfileScreen() {
     };
 
     const handleSettingPress = (label) => {
-        Alert.alert('Settings', `You selected: ${label}`);
+        if (label === 'Personal Information') {
+            router.push('/personal-info');
+        } else {
+            Alert.alert('Settings', `You selected: ${label}`);
+        }
     };
 
     const handleClearAllData = async () => {
@@ -124,7 +128,7 @@ export default function ProfileScreen() {
                         </View>
                         <TouchableOpacity
                             style={[styles.editBtn, { backgroundColor: theme.primary + '15' }]}
-                            onPress={() => handleComingSoon('Profile Editing')}
+                            onPress={() => router.push('/personal-info')}
                         >
                             <Text style={[styles.editBtnText, { color: theme.primary }]}>Edit</Text>
                         </TouchableOpacity>
