@@ -78,3 +78,66 @@ export async function askGemini(contents) {
         throw error;
     }
 }
+
+/**
+ * Checks for potential drug interactions between a new medicine and existing active medicines.
+ * @param {string} newMedName - Name of the new medicine.
+ * @param {string} newMedDosage - Dosage of the new medicine.
+ * @param {Array<string>} existingMedNames - Array of existing active medicine names.
+ * @returns {Promise<Object>} - JSON object with interaction details.
+ */
+export async function checkDrugInteractions(newMedName, newMedDosage, existingMedNames) {
+    if (!existingMedNames || existingMedNames.length === 0) {
+        return { hasInteraction: false };
+    }
+
+    const prompt = `Act as a clinical pharmacist. Analyze the potential drug-drug interactions between a NEW medicine and a list of EXISTING medicines.
+
+NEW Medicine: ${newMedName} (${newMedDosage})
+EXISTING Medicines: ${existingMedNames.join(', ')}
+
+Return ONLY a JSON object with these keys:
+- hasInteraction: (boolean) True if a significant risk is found.
+- severity: (string) 'High', 'Medium', or 'Low' (only if hasInteraction is true).
+- warningMessage: (string) A concise, serious warning for the user (e.g., "Wait! You just added Aspirin...").
+- reason: (string) A brief medical explanation of the risk.
+
+IMPORTANT: If no significant interaction is found, return {"hasInteraction": false}. Do not halluncinate risks. Focus on clinically significant drug-drug interactions.`;
+
+    try {
+        const responseText = await askGemini(prompt);
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        return jsonMatch ? JSON.parse(jsonMatch[0]) : { hasInteraction: false };
+    } catch (error) {
+        console.error("❌ Drug Interaction Check Error:", error);
+        return { hasInteraction: false }; // Fallback to safe mode
+    }
+}
+
+/**
+ * Simplifies medical jargon or provides general usage tips for a medicine.
+ * @param {string} medName - Name of the medicine.
+ * @param {string} currentInstructions - Existing jargon or instructions (optional).
+ * @returns {Promise<string>} - Simplified instructions or safety tips.
+ */
+export async function getMedicineTips(medName, currentInstructions = "") {
+    const prompt = currentInstructions
+        ? `Act as a helpful pharmacist. Simplify these medical instructions for a patient. Use plain, friendly English.
+           Instructions to simplify: "${currentInstructions}"
+           Medicine: ${medName}
+           
+           Example: "Take 1 tab po bid pc" -> "Take 1 pill by mouth twice a day after your meals."
+           Return ONLY the simplified text.`
+        : `Act as a helpful pharmacist. Provide 2-3 concise, essential safety tips or usage instructions for taking "${medName}". 
+           Focus on things like: whether to take with food, common side effects to watch for, or max dosage.
+           Use plain, friendly English. Keep it under 40 words.
+           Return ONLY the tips.`;
+
+    try {
+        const responseText = await askGemini(prompt);
+        return responseText.trim();
+    } catch (error) {
+        console.error("❌ Get Medicine Tips Error:", error);
+        return "Always take this medicine exactly as directed by your doctor or pharmacist.";
+    }
+}
