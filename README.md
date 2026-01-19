@@ -1,45 +1,40 @@
-# PoyoMed 💊
-> **Pioneering Smart Healthcare & Environmental Sustainability.**
+# PoyoMed 🌿💊
+> **The Sustainable Medication Assistant: Saving Lives, One Recycled Dose at a Time.**
 
-PoyoMed is an all-in-one medication management ecosystem that leverages **Generative AI** and **Cloud Infrastructure** to help users stay healthy while minimizing the environmental impact of medical waste.
-
-By combining proactive health tracking with a first-of-its-kind medication recycling system, PoyoMed addresses two critical global challenges: medication non-adherence and pharmaceutical pollution.
+PoyoMed is a re-architected medication management ecosystem that puts **environmental sustainability** at its core. By leveraging **Gemini AI**, PoyoMed helps users manage their health safely while providing a frictionless, "Recycle-First" path to minimize hazardous pharmaceutical waste.
 
 ---
 
 ## 🌍 The Mission
-To empower individuals to manage their health with confidence and provide a frictionless path for the responsible disposal of unused medications.
+To transform how humanity interacts with medication—shifting from a "consume and discard" cycle to a circular economy of responsible health management and environmental protection.
 
 ---
 
 ## 🛠️ Core Pillars
 
-### 1. 🏥 Intelligent Health Management
-Stay in control of your daily regimen with a sophisticated dashboard designed for clarity.
-- **Smart Schedule**: Dynamic "Today's Schedule" that calculates your next dose in real-time.
-- **Inventory Control**: Track stock levels with automated "Low Stock" and "Expiring" alerts.
-- **Medication Archive**: Maintain a persistent history of all past and current prescriptions.
-- **Detailed Insights**: View comprehensive medicine details, including dosage instructions and frequency.
-
-### 2. 🤖 AI-Powered Scanner (Gemini 2.5)
-Our scanner isn't just OCR—it's an intelligent assistant that understands your medicine labels.
-- **Contextual Extraction**: Gemini AI parses brand names, generic active ingredients, and dosage units (pills, ml, tablets).
-- **Spelling Normalization**: Automatically corrects handwriting or printing errors (e.g., "fver" → "Fever").
-- **Smart Expiry Logic**: Intelligently distinguishes between *Dispensed Date* and *Expiry Date*. If an expiry date is missing, the AI estimates one based on the medicine type (syrup vs. tablet).
-- **Manual Override**: A seamless transition from AI scanning to a pre-filled manual form for final verification.
-
-### 3. ⚠️ Safety & Risk Classification
-Safety is at the heart of PoyoMed. Every medicine enters a safety pipeline:
-- **Risk Mapping**: Medicines are categorized as **Low**, **Medium**, or **High** risk based on therapeutic class (e.g., Vitamins vs. Antibiotics).
-- **Safety Badges**: Visual indicators integrated throughout the app (Cards, Details, Recents).
-- **Disposal Intelligence**: Targeted disposal methods (trash vs. pharmacy return) generated per medicine.
-
-### 4. ♻️ The Recycling Ecosystem
-A first-in-class feature set built for a greener planet.
-- **Eco-Impact Dashboard**: Visualize your contribution with metrics like **Meds Saved** and **CO2 Reduction**.
-- **The Drop-off Bag**: A dedicated workspace for items ready for disposal.
+### 1. ♻️ "Recycle-First" Ecosystem
+PoyoMed is primary-focused on medical waste reduction.
+- **Eco-Impact Dashboard**: Your home screen! Visualize your contribution with metrics like **Meds Saved** and **CO2 Reduction**.
+- **Smart Drop-off Bag**: A dedicated digital/physical workflow for items ready for disposal.
+- **Request Pick-up**: Seamlessly schedule a home collection for your recycling bag.
 - **Point Locator**: Map-integrated finder for certified pharmacy collection boxes.
-- **Educational Tips**: Bite-sized guides on how to protect our water and soil from pharmaceutical contamination.
+
+### 2. 🤖 Advanced AI Intelligence (Gemini 2.0)
+Our AI doesn't just scan; it understands, protects, and simplifies.
+- **Smart Scanner**: Contextual extraction of generic names, dosages, and intelligent expiry date prediction.
+- **AI Interaction Guard**: **[NEW]** Proactively checks new scans against your active medications to warn of dangerous drug-drug interactions.
+- **Jargon Decoder**: **[NEW]** Simplifies complex medical instructions into clear, actionable tips for safe usage.
+- **Spelling Normalization**: Automatically corrects medicine name errors from low-quality scans.
+
+### 3. 🏥 Holistic Health Management
+- **Smart Schedule**: Real-time dose tracking and "Daily Health Tips" to boost wellness.
+- **Inventory Control**: Automated "Low Stock" and "Expiring" alerts that help you transition items to recycling before they become waste.
+- **Medication Archive**: A full audit log of your health journey.
+
+### 4. ⚠️ Safety & Risk Classification
+- **Risk Mapping**: Categorizes meds as **Low**, **Medium**, or **High** risk based on therapeutic class.
+- **Safety Badges**: Consistent visual indicators across the entire UI.
+- **Disposal Intelligence**: Tailored disposal methods generated by AI based on medicine type.
 
 ---
 
