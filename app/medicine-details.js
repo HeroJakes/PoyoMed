@@ -208,6 +208,23 @@ export default function MedicineDetails() {
                         </View>
                     </View>
 
+                    {/* Usage Instructions Section */}
+                    {medicine.instructions && (
+                        <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Usage Instructions</Text>
+                                <View style={[styles.aiBadge, { backgroundColor: theme.primary + '15' }]}>
+                                    <Text style={[styles.aiBadgeText, { color: theme.primary }]}>✨ AI Assisted</Text>
+                                </View>
+                            </View>
+                            <View style={[styles.reminderCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                                <Text style={[styles.instructionsText, { color: theme.text }]}>
+                                    {medicine.instructions}
+                                </Text>
+                            </View>
+                        </View>
+                    )}
+
                     {/* Expiry Status Section */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Expiry Status</Text>
@@ -621,5 +638,25 @@ const styles = StyleSheet.create({
     disposalText: {
         fontSize: 14,
         lineHeight: 22,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    aiBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    aiBadgeText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+    },
+    instructionsText: {
+        fontSize: 15,
+        lineHeight: 22,
+        fontWeight: '500',
     },
 });
