@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Dimensions,
     Platform,
@@ -19,7 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Gradients } from '../constants/theme';
 import { auth, db } from '../firebase';
-
+import { checkDrugInteractions, getMedicineTips } from '../services/aiService';
 import { scheduleMedicationReminder } from '../utils/notificationUtils';
 import { classifyMedicineRisk } from '../utils/riskClassification';
 
@@ -56,6 +57,8 @@ export default function AddMedicine() {
     const [expiryDate, setExpiryDate] = useState(initialMedicine?.expiryDate ? new Date(initialMedicine.expiryDate) : new Date());
     const [showExpiryPicker, setShowExpiryPicker] = useState(false);
     const [isEstimated, setIsEstimated] = useState(false);
+    const [instructions, setInstructions] = useState(initialMedicine?.instructions || '');
+    const [isGeneratingTips, setIsGeneratingTips] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -106,9 +109,13 @@ export default function AddMedicine() {
                                     {
                                         text: "Yes, Recycle",
                                         onPress: () => {
-                                            // Logic to add to recycle list would go here
-                                            Alert.alert("Success", "Added to recycling list!");
-                                            router.replace('/recycle');
+                                            handleRecycle({
+                                                name: data.name,
+                                                dosage: data.dosage,
+                                                icon: data.icon || 'medical',
+                                                color: data.color || '#FF8C42',
+                                                expiryDate: parsedDate.toISOString()
+                                            });
                                         }
                                     }
                                 ]
@@ -117,6 +124,7 @@ export default function AddMedicine() {
                     }
                 }
                 if (data.isEstimated) setIsEstimated(true);
+                if (data.instructions) setInstructions(data.instructions);
             } catch (e) {
                 console.error("Error parsing scanned data:", e);
             }
@@ -158,6 +166,98 @@ export default function AddMedicine() {
         return `${hours}:${strMinutes} ${ampm}`;
     };
 
+    const handleGetTips = async () => {
+        if (!name.trim()) {
+            Alert.alert('Identify Medicine', 'Please enter a medicine name first so I can give you tips!');
+            return;
+        }
+
+        setIsGeneratingTips(true);
+        try {
+            const tips = await getMedicineTips(name.trim(), instructions);
+            setInstructions(tips);
+        } catch (error) {
+            console.error("Error getting tips:", error);
+            Alert.alert("Error", "Could not get AI tips at this moment.");
+        } finally {
+            setIsGeneratingTips(false);
+        }
+    };
+
+    const handleRecycle = async (overrideData = null) => {
+        const medicineName = overrideData?.name || name;
+        const medicineDosage = overrideData?.dosage || dosage;
+
+        if (!medicineName.trim()) {
+            Alert.alert('Error', 'Please enter the medicine name');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                Alert.alert('Error', 'You must be logged in to recycle medicines');
+                return;
+            }
+
+            // Interaction Check
+            const activeMedsSnap = await getDocs(query(collection(db, 'users', user.uid, 'medicines'), where('status', '==', 'Active')));
+            const activeMedNames = activeMedsSnap.docs.map(doc => doc.data().name);
+
+            if (activeMedNames.length > 0) {
+                const interaction = await checkDrugInteractions(medicineName, medicineDosage, activeMedNames);
+                if (interaction.hasInteraction && interaction.severity === 'High') {
+                    const proceed = await new Promise(resolve => {
+                        Alert.alert(
+                            '⚠️ Interaction Warning',
+                            `${interaction.warningMessage}\n\nReason: ${interaction.reason}\n\nThis is an AI-generated warning. Do you still want to proceed with recycling this medicine into your bag?`,
+                            [
+                                { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
+                                { text: 'Proceed Anyway', onPress: () => resolve(true), style: 'destructive' }
+                            ]
+                        );
+                    });
+                    if (!proceed) {
+                        setIsLoading(false);
+                        return;
+                    }
+                }
+            }
+
+            const medicineData = {
+                name: medicineName.trim(),
+                dosage: medicineDosage.trim(),
+                frequency: overrideData?.frequency || frequency,
+                timesPerDay: 0,
+                times: [],
+                nextDose: '--',
+                icon: overrideData?.icon || selectedIcon,
+                color: overrideData?.color || selectedColor,
+                expiryDate: overrideData?.expiryDate || expiryDate.toISOString(),
+                instructions: overrideData?.instructions || instructions.trim(),
+                status: 'In Bag',
+                userId: user.uid,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                recycledAt: new Date().toISOString()
+            };
+
+            await addDoc(collection(db, 'users', user.uid, 'medicines'), medicineData);
+
+            Alert.alert(
+                'Added to Bag!',
+                `${medicineName} has been added to your recycling bag.`,
+                [{ text: 'View Bag', onPress: () => router.replace('/') }]
+            );
+        } catch (error) {
+            console.error('Error recycling medicine:', error);
+            Alert.alert('Error', 'Failed to add to recycling bag.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!name.trim()) {
             Alert.alert('Error', 'Please enter the medicine name');
@@ -176,6 +276,30 @@ export default function AddMedicine() {
                 return;
             }
 
+            // Interaction Check
+            const activeMedsSnap = await getDocs(query(collection(db, 'users', user.uid, 'medicines'), where('status', '==', 'Active')));
+            const activeMedNames = activeMedsSnap.docs.map(doc => doc.data().name);
+
+            if (activeMedNames.length > 0) {
+                const interaction = await checkDrugInteractions(name.trim(), dosage.trim(), activeMedNames);
+                if (interaction.hasInteraction && interaction.severity === 'High') {
+                    const proceed = await new Promise(resolve => {
+                        Alert.alert(
+                            '⚠️ Interaction Warning',
+                            `${interaction.warningMessage}\n\nReason: ${interaction.reason}\n\nThis is an AI-generated warning. Do you still want to add this medicine and take it alongside your current prescriptions?`,
+                            [
+                                { text: 'No, Cancel', onPress: () => resolve(false), style: 'cancel' },
+                                { text: 'Proceed Anyway', onPress: () => resolve(true), style: 'destructive' }
+                            ]
+                        );
+                    });
+                    if (!proceed) {
+                        setIsLoading(false);
+                        return;
+                    }
+                }
+            }
+
             // Classify medicine risk using AI
             const riskLevel = await classifyMedicineRisk(name.trim(), dosage.trim());
 
@@ -189,6 +313,7 @@ export default function AddMedicine() {
                 icon: selectedIcon,
                 color: selectedColor,
                 expiryDate: expiryDate.toISOString(),
+                instructions: instructions.trim(),
                 status: 'Active', // Default status
                 riskLevel: riskLevel, // AI-classified risk level
                 userId: user.uid,
@@ -311,6 +436,38 @@ export default function AddMedicine() {
                                 </Text>
                             </View>
                         )}
+
+                        <View style={[styles.sectionHeader, { marginTop: 25 }]}>
+                            <Text style={[styles.label, { color: theme.icon, marginBottom: 0 }]}>Usage Instructions</Text>
+                            <TouchableOpacity
+                                style={[styles.aiTipsBtn, { backgroundColor: theme.primary + '15' }]}
+                                onPress={handleGetTips}
+                                disabled={isGeneratingTips}
+                            >
+                                {isGeneratingTips ? (
+                                    <ActivityIndicator size="small" color={theme.primary} />
+                                ) : (
+                                    <>
+                                        <Text style={[styles.aiTipsText, { color: theme.primary }]}>✨ Get AI Tips</Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                        <View style={[styles.textAreaContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                            <TextInput
+                                placeholder="e.g. Take after food, avoid dairy, or click for AI tips..."
+                                placeholderTextColor={theme.icon}
+                                style={[styles.textArea, { color: theme.text }]}
+                                value={instructions}
+                                onChangeText={setInstructions}
+                                multiline
+                                numberOfLines={4}
+                                textAlignVertical="top"
+                            />
+                        </View>
+                        <Text style={[styles.disclaimerText, { color: theme.icon }]}>
+                            AI tips are for guidance only. Always prioritize doctor's advice.
+                        </Text>
                     </View>
 
                     {/* Schedule Section */}
@@ -510,23 +667,18 @@ export default function AddMedicine() {
                 <View style={styles.footer}>
                     <View style={styles.buttonRow}>
                         <TouchableOpacity
-                            style={[styles.recycleBtn, { borderColor: theme.border, borderWidth: 1 }]}
+                            style={[styles.recycleBtn, { borderColor: theme.border, borderWidth: 1, opacity: isLoading ? 0.6 : 1 }]}
                             onPress={() => {
                                 Alert.alert(
                                     "Recycle Medicine",
-                                    "Are you sure you want to add this medicine to your recycling list?",
+                                    "This will add this medicine to your recycling bag for safe disposal. Proceed?",
                                     [
                                         { text: "Cancel", style: "cancel" },
-                                        {
-                                            text: "Recycle",
-                                            onPress: () => {
-                                                Alert.alert("Success", "Added to recycling list!");
-                                                router.replace('/recycle');
-                                            }
-                                        }
+                                        { text: "Recycle", onPress: () => handleRecycle() }
                                     ]
                                 );
                             }}
+                            disabled={isLoading}
                         >
                             <Ionicons name="refresh-outline" size={20} color={theme.text} />
                             <Text style={[styles.recycleBtnText, { color: theme.text }]}>Recycle</Text>
@@ -744,5 +896,35 @@ const styles = StyleSheet.create({
     estimatedText: {
         fontSize: 12,
         fontStyle: 'italic',
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    aiTipsBtn: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    aiTipsText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    textAreaContainer: {
+        borderRadius: 15,
+        padding: 12,
+        minHeight: 100,
+    },
+    textArea: {
+        fontSize: 15,
+        lineHeight: 22,
+    },
+    disclaimerText: {
+        fontSize: 11,
+        fontStyle: 'italic',
+        marginTop: 8,
+        textAlign: 'right',
     },
 });
