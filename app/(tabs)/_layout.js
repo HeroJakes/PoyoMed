@@ -71,10 +71,10 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
           const getIcon = (name, focused) => {
             let iconName = 'home-outline';
-            if (name === 'index') iconName = focused ? 'home' : 'home-outline';
+            if (name === 'index') iconName = focused ? 'leaf' : 'leaf-outline';
+            else if (name === 'schedule') iconName = focused ? 'calendar' : 'calendar-outline';
             else if (name === 'medicines') iconName = focused ? 'medical' : 'medical-outline';
             else if (name === 'camera') iconName = focused ? 'camera' : 'camera-outline';
-            else if (name === 'recycle') iconName = focused ? 'leaf' : 'leaf-outline';
             else if (name === 'profile') iconName = focused ? 'person' : 'person-outline';
 
             return <Ionicons name={iconName} size={20} color={focused ? '#fff' : theme.icon} />;
@@ -115,19 +115,19 @@ export default function TabLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Home' }}
+        options={{ title: 'Impact' }}
       />
       <Tabs.Screen
-        name="medicines"
-        options={{ title: 'Medicine' }}
+        name="schedule"
+        options={{ title: 'Schedule' }}
       />
       <Tabs.Screen
         name="camera"
         options={{ title: 'Scan' }}
       />
       <Tabs.Screen
-        name="recycle"
-        options={{ title: 'Recycle' }}
+        name="medicines"
+        options={{ title: 'Medicine' }}
       />
       <Tabs.Screen
         name="profile"
