@@ -760,7 +760,7 @@ export default function AddMedicine() {
                         >
                             <LinearGradient
                                 colors={gradients.warm}
-                                style={styles.saveBtn}
+                                style={styles.saveGradient}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                             >
