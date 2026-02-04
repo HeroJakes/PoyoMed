@@ -46,7 +46,7 @@ export default function ScheduleScreen() {
 
       // Filter for Today's Schedule
       const todayMeds = meds.filter(med => {
-        if (med.status === 'In Bag' || med.status === 'Recycled') return false;
+        if (med.status === 'In Bag' || med.status === 'Recycled' || med.status === 'Pending Pickup') return false;
         if (med.frequency !== 'Daily') return false;
         if (isExpired(med.expiryDate)) return false;
 
@@ -87,7 +87,7 @@ export default function ScheduleScreen() {
 
       // Filter for Expiring Soon (<= 7 days)
       const expiring = meds.filter(med => {
-        if (med.status === 'In Bag' || med.status === 'Recycled') return false;
+        if (med.status === 'In Bag' || med.status === 'Recycled' || med.status === 'Pending Pickup') return false;
         if (!med.expiryDate) return false;
         const today = new Date();
         const expiry = new Date(med.expiryDate);

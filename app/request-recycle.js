@@ -148,6 +148,7 @@ export default function RequestRecycleScreen() {
             const updatePromises = selectedMeds.map(medId => {
                 const medRef = doc(db, 'users', user.uid, 'medicines', medId);
                 return updateDoc(medRef, {
+                    status: 'Pending Pickup',
                     requestId: requestData.requestId,
                     requestedAt: new Date().toISOString()
                 });

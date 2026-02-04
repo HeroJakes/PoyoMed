@@ -164,7 +164,7 @@ export default function ImpactScreen() {
 
             // 1. Expiring Medicines
             const expiring = meds.filter(med => {
-                if (med.status === 'In Bag' || med.status === 'Recycled') return false;
+                if (med.status === 'In Bag' || med.status === 'Recycled' || med.status === 'Pending Pickup') return false;
                 if (!med.expiryDate) return false;
                 const today = new Date();
                 const expiry = new Date(med.expiryDate);
@@ -191,7 +191,7 @@ export default function ImpactScreen() {
 
             // 2. Low Stock
             meds.forEach(med => {
-                if (med.status === 'In Bag' || med.status === 'Recycled') return;
+                if (med.status === 'In Bag' || med.status === 'Recycled' || med.status === 'Pending Pickup') return;
                 if (med.currentStock && med.lowStockThreshold && med.currentStock <= med.lowStockThreshold) {
                     newNotifications.push({
                         id: `stock-${med.id}`,

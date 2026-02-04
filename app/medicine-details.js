@@ -288,7 +288,7 @@ export default function MedicineDetails() {
                         const today = new Date().toISOString().split('T')[0];
                         const expectedTakenEntry = `${today} ${nextDoseTime}`;
                         const isTaken = medicine.takenHistory && medicine.takenHistory.includes(expectedTakenEntry);
-                        const isRecycling = medicine.status === 'In Bag' || medicine.status === 'Recycled';
+                        const isRecycling = medicine.status === 'In Bag' || medicine.status === 'Recycled' || medicine.status === 'Pending Pickup';
 
                         if (isRecycling) {
                             return (

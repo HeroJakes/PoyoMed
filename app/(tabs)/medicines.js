@@ -67,7 +67,7 @@ export default function Medicines() {
     )].sort((a, b) => a === 'All' ? -1 : b === 'All' ? 1 : a.localeCompare(b));
 
     const calculateStatus = (expiryDate, currentStatus) => {
-        if (currentStatus === 'In Bag' || currentStatus === 'Recycled') return currentStatus;
+        if (currentStatus === 'In Bag' || currentStatus === 'Recycled' || currentStatus === 'Pending Pickup') return currentStatus;
         if (!expiryDate) return 'Active';
         const today = new Date();
         const expiry = new Date(expiryDate);
@@ -133,7 +133,7 @@ export default function Medicines() {
         const matchesSearch = med.name.toLowerCase().includes(searchQuery.toLowerCase());
         const medCategory = med.category || 'General';
         const matchesCategory = activeCategory === 'All' || medCategory === activeCategory;
-        const isCurrentlyActive = med.status !== 'In Bag' && med.status !== 'Recycled';
+        const isCurrentlyActive = med.status !== 'In Bag' && med.status !== 'Recycled' && med.status !== 'Pending Pickup';
         return matchesSearch && matchesCategory && isCurrentlyActive;
     });
 
