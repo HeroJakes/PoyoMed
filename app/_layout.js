@@ -6,15 +6,18 @@ import { StatusBar } from 'react-native';
 import 'react-native-reanimated';
 import { registerForPushNotificationsAsync, setupNotificationCategories, setupNotificationHandler } from '../utils/notificationUtils';
 
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 // Initialize notification handler
 setupNotificationHandler();
 
-export default function RootLayout() {
+function InnerLayout() {
   const router = useRouter();
   const responseListener = useRef();
+  const { theme } = useTheme();
 
   useEffect(() => {
     SplashScreen.hideAsync();
@@ -67,11 +70,9 @@ export default function RootLayout() {
     };
   }, []);
 
-
-
   return (
     <>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -82,5 +83,13 @@ export default function RootLayout() {
         <Stack.Screen name="+not-found" />
       </Stack>
     </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <InnerLayout />
+    </ThemeProvider>
   );
 }

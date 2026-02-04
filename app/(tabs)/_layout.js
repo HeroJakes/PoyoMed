@@ -44,9 +44,19 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
   return (
     <View style={styles.tabBarContainer}>
-      <View style={[styles.tabBar, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: theme.border }]}>
+      <View style={[
+        styles.tabBar,
+        {
+          backgroundColor: colorScheme === 'dark' ? 'rgba(42, 36, 32, 0.9)' : 'rgba(255, 255, 255, 0.85)',
+          borderColor: theme.border
+        }
+      ]}>
         {/* Sliding Pill Background */}
-        <Animated.View style={[styles.slidingPill, animatedPillStyle]} />
+        <Animated.View style={[
+          styles.slidingPill,
+          { backgroundColor: colorScheme === 'dark' ? theme.primary : '#2D2D2D' },
+          animatedPillStyle
+        ]} />
 
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
@@ -168,9 +178,8 @@ const styles = StyleSheet.create({
   slidingPill: {
     position: 'absolute',
     height: 45,
-    backgroundColor: '#2D2D2D',
     borderRadius: 25,
-    left: 0, // Use 0 so translateX aligns perfectly with onLayout x
+    left: 0,
   },
   tabItem: {
     flex: 1,

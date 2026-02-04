@@ -7,6 +7,7 @@ import { useState } from 'react';
 import {
     Alert,
     Dimensions,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -14,12 +15,12 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Gradients } from '../constants/theme';
+import { Colors, ThemeGradients } from '../constants/theme';
 import { auth, db } from '../firebase';
+import { useColorScheme } from '../hooks/use-color-scheme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,7 +28,7 @@ export default function LoginScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
-    const gradients = Gradients;
+    const gradients = ThemeGradients[colorScheme];
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -93,14 +94,11 @@ export default function LoginScreen() {
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                         <View style={styles.header}>
                             <View style={styles.logoContainer}>
-                                <LinearGradient
-                                    colors={gradients.warm}
-                                    style={styles.logoGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                >
-                                    <Ionicons name="medical" size={40} color="#fff" />
-                                </LinearGradient>
+                                <Image
+                                    source={require('../assets/images/logo.png')}
+                                    style={styles.logoImage}
+                                    resizeMode="contain"
+                                />
                             </View>
                             <Text style={[styles.title, { color: theme.text }]}>Welcome Back</Text>
                             <Text style={[styles.subtitle, { color: theme.icon }]}>Sign in to continue your health journey</Text>
@@ -155,7 +153,7 @@ export default function LoginScreen() {
                                         { borderColor: theme.border },
                                         rememberMe && { backgroundColor: theme.primary, borderColor: theme.primary }
                                     ]}>
-                                        {rememberMe && <Ionicons name="checkmark" size={12} color="#fff" />}
+                                        {rememberMe && <Ionicons name="checkmark" size={12} color={theme.background} />}
                                     </View>
                                     <Text style={[styles.rememberMeText, { color: theme.icon }]}>Remember me</Text>
                                 </TouchableOpacity>
@@ -208,25 +206,11 @@ const styles = StyleSheet.create({
         marginBottom: 40,
     },
     logoContainer: {
-        marginBottom: 20,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#FF8C42',
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.3,
-                shadowRadius: 15,
-            },
-            android: {
-                elevation: 8,
-            },
-        }),
+        marginBottom: -50,
     },
-    logoGradient: {
-        width: 80,
-        height: 80,
-        borderRadius: 25,
-        justifyContent: 'center',
-        alignItems: 'center',
+    logoImage: {
+        width: 180,
+        height: 180,
     },
     title: {
         fontSize: 28,

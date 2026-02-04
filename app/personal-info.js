@@ -14,12 +14,12 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Gradients } from '../constants/theme';
+import { Colors, ThemeGradients } from '../constants/theme';
 import { auth, db } from '../firebase';
+import { useColorScheme } from '../hooks/use-color-scheme';
 
 const { width } = Dimensions.get('window');
 
@@ -27,7 +27,7 @@ export default function PersonalInfoScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
-    const gradients = Gradients;
+    const gradients = ThemeGradients[colorScheme];
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);

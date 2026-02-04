@@ -7,6 +7,7 @@ import { useState } from 'react';
 import {
     Alert,
     Dimensions,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -14,12 +15,12 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Gradients } from '../constants/theme';
+import { Colors, ThemeGradients } from '../constants/theme';
 import { auth, db } from '../firebase';
+import { useColorScheme } from '../hooks/use-color-scheme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,7 +28,7 @@ export default function RegisterScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
-    const gradients = Gradients;
+    const gradients = ThemeGradients[colorScheme];
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -99,6 +100,13 @@ export default function RegisterScreen() {
                         </TouchableOpacity>
 
                         <View style={styles.header}>
+                            <View style={styles.logoContainer}>
+                                <Image
+                                    source={require('../assets/images/logo.png')}
+                                    style={styles.logoImage}
+                                    resizeMode="contain"
+                                />
+                            </View>
                             <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
                             <Text style={[styles.subtitle, { color: theme.icon }]}>Join PoyoMed and start managing your health better</Text>
                         </View>
@@ -201,7 +209,15 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     header: {
+        alignItems: 'center',
         marginBottom: 40,
+    },
+    logoContainer: {
+        marginBottom: -50,
+    },
+    logoImage: {
+        width: 180,
+        height: 180,
     },
     title: {
         fontSize: 28,
@@ -210,6 +226,7 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontSize: 16,
+        textAlign: 'center',
         lineHeight: 24,
     },
     form: {

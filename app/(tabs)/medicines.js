@@ -12,7 +12,6 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import Animated, {
@@ -22,8 +21,9 @@ import Animated, {
     withTiming
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Gradients } from '../../constants/theme';
+import { Colors, ThemeGradients } from '../../constants/theme';
 import { auth, db } from '../../firebase';
+import { useColorScheme } from '../../hooks/use-color-scheme';
 
 import { getNextDose } from '../../utils/medicineUtils';
 import { cancelMedicationReminders } from '../../utils/notificationUtils';
@@ -34,8 +34,8 @@ const { width, height } = Dimensions.get('window');
 export default function Medicines() {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
-    const gradients = Gradients;
-    const darkText = Colors.light.text;
+    const gradients = ThemeGradients[colorScheme];
+    const darkText = colorScheme === 'dark' ? '#FFF' : Colors.light.text;
     const router = useRouter();
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -60,7 +60,11 @@ export default function Medicines() {
         setIsMenuOpen(!isMenuOpen);
     };
 
-    const categories = ['All', 'Daily', 'Weekly', 'As Needed', 'Supplements'];
+    // Dynamic categories derived from user's actual medications
+    const dynamicCategories = ['All', ...new Set(medications
+        .map(m => m.category || 'General')
+        .filter(c => c)
+    )].sort((a, b) => a === 'All' ? -1 : b === 'All' ? 1 : a.localeCompare(b));
 
     const calculateStatus = (expiryDate, currentStatus) => {
         if (currentStatus === 'In Bag' || currentStatus === 'Recycled') return currentStatus;
@@ -127,7 +131,8 @@ export default function Medicines() {
 
     const filteredMedications = medications.filter(med => {
         const matchesSearch = med.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = activeCategory === 'All' || med.frequency === activeCategory;
+        const medCategory = med.category || 'General';
+        const matchesCategory = activeCategory === 'All' || medCategory === activeCategory;
         const isCurrentlyActive = med.status !== 'In Bag' && med.status !== 'Recycled';
         return matchesSearch && matchesCategory && isCurrentlyActive;
     });
@@ -174,7 +179,7 @@ export default function Medicines() {
                     </View>
                     <TouchableOpacity
                         onPress={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
-                        style={[styles.notificationBtn, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}
+                        style={[styles.notificationBtn, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
                     >
                         <Ionicons name={viewMode === 'list' ? 'grid-outline' : 'list-outline'} size={22} color={darkText} />
                     </TouchableOpacity>
@@ -206,7 +211,7 @@ export default function Medicines() {
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.categoriesScroll}
                     >
-                        {categories.map((category) => (
+                        {dynamicCategories.map((category) => (
                             <TouchableOpacity
                                 key={category}
                                 onPress={() => setActiveCategory(category)}
@@ -334,7 +339,7 @@ function MedicationCard({ med, theme, darkText, router }) {
                 </View>
 
                 <Text style={[styles.medDosage, { color: theme.icon }]}>
-                    {med.dosage ? `${med.dosage} • ` : ''}{med.frequency}
+                    {med.dosage ? `${med.dosage} • ` : ''}{med.category || 'General'}
                 </Text>
 
                 <View style={styles.medFooter}>
@@ -385,7 +390,7 @@ function MedicationGridCard({ med, theme, darkText, router }) {
             <View style={styles.gridInfo}>
                 <Text style={[styles.gridName, { color: theme.text }]} numberOfLines={1}>{med.name}</Text>
                 <Text style={[styles.gridDosage, { color: theme.icon }]} numberOfLines={1}>
-                    {med.dosage || med.frequency}
+                    {med.dosage || med.category || 'General'}
                 </Text>
 
                 <View style={[styles.gridStatusBadge, { backgroundColor: getStatusColor(med.status) + '15' }]}>

@@ -3,10 +3,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { arrayUnion, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { Alert, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, useColorScheme, View } from 'react-native';
+import { Alert, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Gradients } from '../constants/theme';
+import { Colors, ThemeGradients } from '../constants/theme';
 import { auth, db } from '../firebase';
+import { useColorScheme } from '../hooks/use-color-scheme';
 
 import { getNextDose, isExpired } from '../utils/medicineUtils';
 import { cancelMedicationReminders } from '../utils/notificationUtils';
@@ -19,7 +20,7 @@ export default function MedicineDetails() {
     const params = useLocalSearchParams();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
-    const gradients = Gradients;
+    const gradients = ThemeGradients[colorScheme];
     const [menuVisible, setMenuVisible] = useState(false);
     const [medicine, setMedicine] = useState(params.medicine ? JSON.parse(params.medicine) : null);
 

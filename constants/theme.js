@@ -15,30 +15,59 @@ const palette = {
   icon: '#8B735B',
   tabIconDefault: '#C8B6A6',
   tabIconSelected: '#FF8C42',
-  primary: '#FF8C42', // Warm Orange
-  secondary: '#F9D423', // Sunny Yellow
-  accent: '#FFB347', // Soft Peach
+  primary: '#FF8C42',
+  secondary: '#F9D423',
+  accent: '#FFB347',
   success: '#82C91E',
   warning: '#FAB005',
   danger: '#FA5252',
-  card: '#FFF5EB', // Soft Peach instead of White
+  card: '#FFF5EB',
   border: '#F3E9DC',
-  pastelPeach: '#FFF5EB',
-  pastelYellow: '#FFFBEB',
-  pastelOrange: '#FFF0E6',
+};
+
+const darkPalette = {
+  text: '#ECE0D1', // Light Cream
+  background: '#1A1614', // Rich Dark Cocoa
+  tint: '#FF8C42',
+  icon: '#ECE0D1',
+  tabIconDefault: '#5D5041',
+  tabIconSelected: '#FF8C42',
+  primary: '#FF8C42',
+  secondary: '#F9D423',
+  accent: '#FFB347',
+  success: '#82C91E',
+  warning: '#FAB005',
+  danger: '#FA5252',
+  card: '#2A2420', // Dark Warm Wood/Brown
+  border: '#3D342D',
 };
 
 export const Colors = {
   light: palette,
-  dark: palette,
+  dark: darkPalette,
 };
 
-export const Gradients = {
-  main: ['#FFF9F2', '#FFF0E6'], // Warm Cream to Soft Peach
+export const LightGradients = {
+  main: ['#FFF9F2', '#FFF0E6'],
   warm: ['#FFB347', '#FF8C42'],
   sunny: ['#F9D423', '#FFB347'],
   sunset: ['#FF8C42', '#F06292'],
 };
+
+export const DarkGradients = {
+  main: ['#1A1614', '#2A2420'],
+  warm: ['#3D342D', '#FF8C42'], // Darker start to warm accent
+  sunny: ['#2A2420', '#F9D423'],
+  sunset: ['#2A2420', '#F06292'],
+};
+
+export const ThemeGradients = {
+  light: LightGradients,
+  dark: DarkGradients,
+};
+
+// Default Gradients object for backward compatibility
+export const Gradients = LightGradients;
 
 export const Fonts = Platform.select({
   ios: {

@@ -14,19 +14,15 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DROP_OFF_LOCATIONS, FALLBACK_USER_LOCATION } from '../../constants/dropOffLocations';
-import { Colors, Gradients } from '../../constants/theme';
+import { Colors, ThemeGradients } from '../../constants/theme';
 import { auth, db } from '../../firebase';
+import { useColorScheme } from '../../hooks/use-color-scheme';
 
 const { width } = Dimensions.get('window');
-
-// Local Eco Gradient
-const ECO_GRADIENT = Gradients.warm;
-const WATER_GRADIENT = Gradients.sunny;
 
 // Haversine formula to calculate distance between two points in km
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -51,7 +47,10 @@ export default function ImpactScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
-    const gradients = Gradients;
+    const gradients = ThemeGradients[colorScheme];
+
+    const ECO_GRADIENT = gradients.warm;
+    const WATER_GRADIENT = gradients.sunny;
 
     const [itemsRecycledCount, setItemsRecycledCount] = useState(0);
     const [readyForRecycle, setReadyForRecycle] = useState([]);
@@ -314,11 +313,13 @@ export default function ImpactScreen() {
                             </View>
                         </View>
                         <TouchableOpacity
-                            style={[styles.notificationBtn, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}
+                            style={[styles.notificationBtn, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
                             onPress={handleNotification}
                         >
-                            <Ionicons name="notifications-outline" size={22} color={theme.text} />
-                            {notifications.length > 0 && <View style={styles.notificationBadge} />}
+                            <View style={styles.notificationBtn}>
+                                <Ionicons name="notifications-outline" size={22} color={theme.text} />
+                                {notifications.length > 0 && <View style={[styles.notificationBadge, { backgroundColor: theme.danger, borderColor: theme.background }]} />}
+                            </View>
                         </TouchableOpacity>
                     </View>
 
@@ -357,7 +358,7 @@ export default function ImpactScreen() {
                     {/* Drop-off Bag Section */}
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>My Drop-off Bag</Text>
-                        <View style={styles.badgeCount}>
+                        <View style={[styles.badgeCount, { backgroundColor: theme.primary }]}>
                             <Text style={styles.badgeText}>{readyForRecycle.length}</Text>
                         </View>
                         <TouchableOpacity
@@ -440,7 +441,7 @@ export default function ImpactScreen() {
                                         <Text style={[styles.pointTagText, { color: theme.primary }]}>{point.badge}</Text>
                                     </View>
                                 </View>
-                                <View style={styles.pointCardFooter}>
+                                <View style={[styles.pointCardFooter, { borderTopColor: theme.border }]}>
                                     <View style={styles.pointDetail}>
                                         <Ionicons name="time-outline" size={14} color={theme.icon} />
                                         <Text style={[styles.pointDetailText, { color: theme.icon }]}>{point.hours}</Text>
@@ -531,7 +532,7 @@ function NotificationPopup({ visible, onClose, notifications, onClearAll, theme,
                                         <View style={styles.notifText}>
                                             <View style={styles.notifTitleRow}>
                                                 <Text style={[styles.notifTitle, { color: theme.text }]}>{notif.title}</Text>
-                                                {notif.unread && <View style={styles.unreadDot} />}
+                                                {notif.unread && <View style={[styles.unreadDot, { backgroundColor: theme.danger }]} />}
                                             </View>
                                             <Text style={[styles.notifMessage, { color: theme.icon }]}>{notif.message}</Text>
                                             <Text style={[styles.notifTime, { color: theme.icon }]}>{notif.time}</Text>
@@ -656,9 +657,7 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#FA5252',
         borderWidth: 1.5,
-        borderColor: '#FFFBF7',
     },
     modalOverlay: {
         flex: 1,
@@ -737,7 +736,6 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#FA5252',
     },
     notifMessage: {
         fontSize: 14,
@@ -844,7 +842,6 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     badgeCount: {
-        backgroundColor: '#FF8C42',
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 10,
@@ -1006,7 +1003,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.03)',
     },
     pointDetail: {
         flexDirection: 'row',

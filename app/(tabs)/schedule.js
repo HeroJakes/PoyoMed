@@ -11,12 +11,12 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useColorScheme,
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Gradients } from '../../constants/theme';
+import { Colors, ThemeGradients } from '../../constants/theme';
 import { auth, db } from '../../firebase';
+import { useColorScheme } from '../../hooks/use-color-scheme';
 import { getNextDose, isExpired, isNextDoseToday } from '../../utils/medicineUtils';
 import { getRiskMetadata } from '../../utils/riskClassification';
 
@@ -25,7 +25,7 @@ const { width, height } = Dimensions.get('window');
 export default function ScheduleScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
-  const gradients = Gradients;
+  const gradients = ThemeGradients[colorScheme];
   const router = useRouter();
 
   const [todaysMedicines, setTodaysMedicines] = useState([]);
@@ -167,7 +167,7 @@ export default function ScheduleScreen() {
                 <Ionicons name="water" size={40} color={'#FFFFFF'} />
               </View>
             </View>
-            <TouchableOpacity style={styles.heroButton} onPress={handleLearnMore}>
+            <TouchableOpacity style={[styles.heroButton, { backgroundColor: theme.card }]} onPress={handleLearnMore}>
               <Text style={[styles.heroButtonText, { color: theme.text }]}>Learn More</Text>
               <Ionicons name="arrow-forward" size={16} color={theme.primary} />
             </TouchableOpacity>
@@ -366,7 +366,6 @@ const styles = StyleSheet.create({
     width: width * 0.55,
   },
   heroButton: {
-    backgroundColor: '#fff',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 15,

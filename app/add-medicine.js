@@ -14,12 +14,12 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Gradients } from '../constants/theme';
+import { Colors, ThemeGradients } from '../constants/theme';
 import { auth, db } from '../firebase';
+import { useColorScheme } from '../hooks/use-color-scheme';
 import { checkDrugInteractions, getMedicineTips } from '../services/aiService';
 import { scheduleMedicationReminder } from '../utils/notificationUtils';
 import { classifyMedicineRisk } from '../utils/riskClassification';
@@ -41,7 +41,7 @@ export default function AddMedicine() {
     const params = useLocalSearchParams();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
-    const gradients = Gradients;
+    const gradients = ThemeGradients[colorScheme];
     const isEditMode = params.mode === 'edit';
     const initialMedicine = params.medicine ? JSON.parse(params.medicine) : null;
 
@@ -58,6 +58,8 @@ export default function AddMedicine() {
     const [showExpiryPicker, setShowExpiryPicker] = useState(false);
     const [isEstimated, setIsEstimated] = useState(false);
     const [instructions, setInstructions] = useState(initialMedicine?.instructions || '');
+    const [category, setCategory] = useState(initialMedicine?.category || 'General');
+    const [customCategory, setCustomCategory] = useState('');
     const [isGeneratingTips, setIsGeneratingTips] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -125,6 +127,10 @@ export default function AddMedicine() {
                 }
                 if (data.isEstimated) setIsEstimated(true);
                 if (data.instructions) setInstructions(data.instructions);
+                if (data.category) {
+                    const cat = data.category.charAt(0).toUpperCase() + data.category.slice(1).toLowerCase();
+                    setCategory(cat);
+                }
             } catch (e) {
                 console.error("Error parsing scanned data:", e);
             }
@@ -132,6 +138,7 @@ export default function AddMedicine() {
     }, [params.scannedData]);
 
     const frequencies = ['Daily', 'Weekly', 'Monthly', 'As Needed'];
+    const commonCategories = ['General', 'Painkillers', 'Antibiotics', 'Supplements', 'Vitamins', 'Chronic', 'First Aid'];
     const timesOptions = [1, 2, 3, 4];
 
     const handleTimesChange = (num) => {
@@ -229,6 +236,7 @@ export default function AddMedicine() {
                 name: medicineName.trim(),
                 dosage: medicineDosage.trim(),
                 frequency: overrideData?.frequency || frequency,
+                category: overrideData?.category || category,
                 timesPerDay: 0,
                 times: [],
                 nextDose: '--',
@@ -307,15 +315,16 @@ export default function AddMedicine() {
                 name: name.trim(),
                 dosage: dosage.trim(),
                 frequency,
+                category: category === 'Custom' ? customCategory.trim() : category,
                 timesPerDay: frequency === 'Daily' ? timesPerDay : 1,
                 times: frequency === 'Daily' ? doseTimes.map(t => formatTime(t)) : [],
-                nextDose: frequency === 'Daily' ? formatTime(doseTimes[0]) : '--', // Simple logic for now
+                nextDose: frequency === 'Daily' ? formatTime(doseTimes[0]) : '--',
                 icon: selectedIcon,
                 color: selectedColor,
                 expiryDate: expiryDate.toISOString(),
                 instructions: instructions.trim(),
-                status: 'Active', // Default status
-                riskLevel: riskLevel, // AI-classified risk level
+                status: 'Active',
+                riskLevel: riskLevel,
                 userId: user.uid,
                 updatedAt: new Date().toISOString(),
             };
@@ -472,6 +481,65 @@ export default function AddMedicine() {
 
                     {/* Schedule Section */}
                     <View style={styles.section}>
+                        <Text style={[styles.sectionTitle, { color: theme.text }]}>Classification</Text>
+
+                        <Text style={[styles.label, { color: theme.icon }]}>Category</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.categoryRow}
+                        >
+                            {commonCategories.map((c) => (
+                                <TouchableOpacity
+                                    key={c}
+                                    onPress={() => setCategory(c)}
+                                    style={[
+                                        styles.frequencyChip,
+                                        category === c
+                                            ? { backgroundColor: theme.primary }
+                                            : { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.frequencyText,
+                                        category === c ? { color: '#fff' } : { color: theme.text }
+                                    ]}>
+                                        {c}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                            <TouchableOpacity
+                                onPress={() => setCategory('Custom')}
+                                style={[
+                                    styles.frequencyChip,
+                                    category === 'Custom'
+                                        ? { backgroundColor: theme.primary }
+                                        : { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }
+                                ]}
+                            >
+                                <Text style={[
+                                    styles.frequencyText,
+                                    category === 'Custom' ? { color: '#fff' } : { color: theme.text }
+                                ]}>
+                                    Custom +
+                                </Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+
+                        {category === 'Custom' && (
+                            <View style={[styles.inputContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, marginTop: 10 }]}>
+                                <Ionicons name="pricetag-outline" size={20} color={theme.icon} style={styles.inputIcon} />
+                                <TextInput
+                                    placeholder="Enter custom category name..."
+                                    placeholderTextColor={theme.icon}
+                                    style={[styles.inputText, { color: theme.text }]}
+                                    value={customCategory}
+                                    onChangeText={setCustomCategory}
+                                />
+                            </View>
+                        )}
+
+                        <View style={{ height: 20 }} />
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Schedule</Text>
 
                         <Text style={[styles.label, { color: theme.icon }]}>Frequency</Text>
@@ -692,7 +760,7 @@ export default function AddMedicine() {
                         >
                             <LinearGradient
                                 colors={gradients.warm}
-                                style={styles.saveGradient}
+                                style={styles.saveBtn}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                             >
@@ -764,6 +832,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         marginBottom: 15,
+        gap: 10,
+    },
+    categoryRow: {
+        flexDirection: 'row',
+        paddingVertical: 5,
+        gap: 10,
     },
     frequencyChip: {
         paddingHorizontal: 16,

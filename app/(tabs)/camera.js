@@ -12,7 +12,6 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import Animated, {
@@ -24,6 +23,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Gradients } from '../../constants/theme';
+import { useColorScheme } from '../../hooks/use-color-scheme';
 import { askGemini } from '../../services/aiService';
 
 const { width, height } = Dimensions.get('window');
@@ -156,8 +156,9 @@ Logic for extraction:
     
 - isEstimated: Boolean. True if the expiry was estimated from a dispensed date, false if a clear expiry date was found.
 - instructions: Any other usage notes (e.g., 'After food').
+- category: One of 'General', 'Painkillers', 'Antibiotics', 'Supplements', 'Vitamins', 'Chronic', 'First Aid'. Choose the best fit or 'General' if unsure.
 
-If a field is not found, use an empty string (or 1 for timesPerDay, false for isEstimated).`;
+If a field is not found, use an empty string (or 1 for timesPerDay, false for isEstimated, 'General' for category).`;
 
             const responseText = await askGemini([
                 prompt,
@@ -237,8 +238,9 @@ Logic for extraction:
     
 - isEstimated: Boolean. True if the expiry was estimated from a dispensed date, false if a clear expiry date was found.
 - instructions: Any other usage notes (e.g., 'After food').
+- category: One of 'General', 'Painkillers', 'Antibiotics', 'Supplements', 'Vitamins', 'Chronic', 'First Aid'. Choose the best fit or 'General' if unsure.
 
-If a field is not found, use an empty string (or 1 for timesPerDay, false for isEstimated).`;
+If a field is not found, use an empty string (or 1 for timesPerDay, false for isEstimated, 'General' for category).`;
 
                 const responseText = await askGemini([
                     prompt,
@@ -383,7 +385,7 @@ function AnalysisOverlay({ visible, step, theme }) {
             <Animated.View
                 entering={Animated.FadeIn}
                 exiting={Animated.FadeOut}
-                style={styles.analysisContent}
+                style={[styles.analysisContent, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
             >
                 <View style={styles.analysisHeader}>
                     <View style={styles.analysisIconContainer}>
@@ -404,7 +406,7 @@ function AnalysisOverlay({ visible, step, theme }) {
                             <View key={item.id} style={[
                                 styles.stepItem,
                                 isActive && styles.stepItemActive,
-                                { backgroundColor: isActive ? theme.primary + '10' : 'rgba(255,255,255,0.05)' }
+                                { backgroundColor: isActive ? theme.primary + '15' : theme.background }
                             ]}>
                                 <View style={styles.stepIconLabel}>
                                     <Ionicons
@@ -634,7 +636,6 @@ const styles = StyleSheet.create({
     },
     analysisContent: {
         width: '100%',
-        backgroundColor: '#fff',
         borderRadius: 30,
         padding: 30,
         alignItems: 'center',

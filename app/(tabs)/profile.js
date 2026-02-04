@@ -12,20 +12,21 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Gradients } from '../../constants/theme';
+import { Colors, ThemeGradients } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { auth, db } from '../../firebase';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
     const router = useRouter();
-    const colorScheme = useColorScheme() ?? 'light';
+    const { theme: activeTheme, toggleTheme } = useTheme();
+    const colorScheme = activeTheme;
     const theme = Colors[colorScheme];
-    const gradients = Gradients;
+    const gradients = ThemeGradients[colorScheme];
     const [userName, setUserName] = useState('User');
     const [userEmail, setUserEmail] = useState('user@poyomed.com');
 
@@ -105,7 +106,7 @@ export default function ProfileScreen() {
                     <View style={styles.header}>
                         <Text style={[styles.title, { color: theme.text }]}>Profile</Text>
                         <TouchableOpacity
-                            style={[styles.settingsBtn, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}
+                            style={[styles.settingsBtn, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
                             onPress={() => handleComingSoon('App Settings')}
                         >
                             <Ionicons name="cog-outline" size={22} color={theme.text} />
@@ -137,7 +138,7 @@ export default function ProfileScreen() {
                     {/* Settings Sections */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: theme.icon }]}>Account</Text>
-                        <View style={[styles.settingsGroup, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}>
+                        <View style={[styles.settingsGroup, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                             <SettingItem icon="person-outline" label="Personal Information" theme={theme} onPress={() => handleSettingPress('Personal Information')} />
                             <View style={[styles.divider, { backgroundColor: theme.border }]} />
                             <SettingItem icon="notifications-outline" label="Notifications" theme={theme} onPress={() => handleSettingPress('Notifications')} />
@@ -148,9 +149,7 @@ export default function ProfileScreen() {
 
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: theme.icon }]}>App Settings</Text>
-                        <View style={[styles.settingsGroup, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}>
-                            <SettingItem icon="color-palette-outline" label="Theme" theme={theme} value="System" onPress={() => handleSettingPress('Theme')} />
-                            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                        <View style={[styles.settingsGroup, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                             <SettingItem icon="language-outline" label="Language" theme={theme} value="English" onPress={() => handleSettingPress('Language')} />
                             <View style={[styles.divider, { backgroundColor: theme.border }]} />
                             <SettingItem icon="help-circle-outline" label="Help & Support" theme={theme} onPress={() => handleSettingPress('Help & Support')} />
@@ -160,7 +159,7 @@ export default function ProfileScreen() {
                     {/* Developer Tools */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: theme.icon }]}>Developer Tools</Text>
-                        <View style={[styles.settingsGroup, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}>
+                        <View style={[styles.settingsGroup, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                             <SettingItem
                                 icon="code-slash-outline"
                                 label="Generate Dummy Data"
