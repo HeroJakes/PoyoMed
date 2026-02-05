@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
+    Image,
     Platform,
     ScrollView,
     StyleSheet,
@@ -29,6 +30,7 @@ export default function ProfileScreen() {
     const gradients = ThemeGradients[colorScheme];
     const [userName, setUserName] = useState('User');
     const [userEmail, setUserEmail] = useState('user@poyomed.com');
+    const [photoURL, setPhotoURL] = useState(null);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -39,6 +41,7 @@ export default function ProfileScreen() {
                     const data = userDoc.data();
                     setUserName(data.name || 'User');
                     setUserEmail(user.email || 'user@poyomed.com');
+                    setPhotoURL(data.photoURL || null);
                 }
             }
         };
@@ -121,7 +124,11 @@ export default function ProfileScreen() {
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                         >
-                            <Ionicons name="sunny" size={40} color="#fff" />
+                            {photoURL ? (
+                                <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+                            ) : (
+                                <Ionicons name="sunny" size={40} color="#fff" />
+                            )}
                         </LinearGradient>
                         <View style={styles.userInfo}>
                             <Text style={[styles.userName, { color: theme.text }]}>{userName}</Text>
@@ -556,6 +563,11 @@ const styles = StyleSheet.create({
         borderRadius: 35,
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
     userInfo: {
         flex: 1,

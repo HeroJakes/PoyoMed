@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
+    Image,
     Modal,
     Platform,
     RefreshControl,
@@ -58,6 +59,7 @@ export default function ImpactScreen() {
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [userName, setUserName] = useState('User');
+    const [photoURL, setPhotoURL] = useState(null);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -67,7 +69,9 @@ export default function ImpactScreen() {
         if (auth.currentUser) {
             const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
             if (userDoc.exists()) {
-                setUserName(userDoc.data().name || 'User');
+                const data = userDoc.data();
+                setUserName(data.name || 'User');
+                setPhotoURL(data.photoURL || null);
             }
         }
         setTimeout(() => {
@@ -151,7 +155,9 @@ export default function ImpactScreen() {
             if (user) {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
-                    setUserName(userDoc.data().name || 'User');
+                    const data = userDoc.data();
+                    setUserName(data.name || 'User');
+                    setPhotoURL(data.photoURL || null);
                 }
             }
         };
@@ -307,7 +313,11 @@ export default function ImpactScreen() {
                     <View style={styles.header}>
                         <View style={styles.headerLeft}>
                             <View style={[styles.avatarContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-                                <Ionicons name="sunny" size={24} color={theme.primary} />
+                                {photoURL ? (
+                                    <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+                                ) : (
+                                    <Ionicons name="sunny" size={24} color={theme.primary} />
+                                )}
                             </View>
                             <View style={styles.headerText}>
                                 <Text style={[styles.greeting, { color: theme.icon }]}>{getGreeting()}</Text>
@@ -621,6 +631,7 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
@@ -632,6 +643,10 @@ const styles = StyleSheet.create({
                 elevation: 4,
             },
         }),
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
     headerText: {
         marginLeft: 12,

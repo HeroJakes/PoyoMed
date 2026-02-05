@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -7,6 +8,7 @@ import {
     ActivityIndicator,
     Alert,
     Dimensions,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -34,6 +36,8 @@ export default function PersonalInfoScreen() {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
+    const [photoURL, setPhotoURL] = useState(null);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -50,6 +54,7 @@ export default function PersonalInfoScreen() {
                     setName(data.name || '');
                     setPhone(data.phone || '');
                     setAddress(data.address || '');
+                    setPhotoURL(data.photoURL || null);
                 }
             } catch (error) {
                 console.error("Error fetching user data:", error);
@@ -61,6 +66,50 @@ export default function PersonalInfoScreen() {
 
         fetchUserData();
     }, []);
+
+    const pickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Required', 'Please grant gallery permissions to change your profile picture.');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.3, // Lower quality for Firestore storage
+            base64: true,
+        });
+
+        if (!result.canceled && result.assets[0].base64) {
+            saveImageAsBase64(result.assets[0].base64, result.assets[0].uri);
+        }
+    };
+
+    const saveImageAsBase64 = async (base64Data, uri) => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        setUploading(true);
+        try {
+            const formattedBase64 = `data:image/jpeg;base64,${base64Data}`;
+
+            // Update Firestore immediately
+            await setDoc(doc(db, 'users', user.uid), {
+                photoURL: formattedBase64,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+
+            setPhotoURL(formattedBase64);
+            console.log("Profile picture saved to Firestore as Base64");
+        } catch (error) {
+            console.error("Error saving image:", error);
+            Alert.alert('Save Failed', 'There was an error saving your profile picture to the database.');
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handleSave = async () => {
         const user = auth.currentUser;
@@ -125,6 +174,45 @@ export default function PersonalInfoScreen() {
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                        <View style={styles.avatarContainer}>
+                            <TouchableOpacity onPress={pickImage} disabled={uploading} style={styles.avatarOpacity}>
+                                <View style={[styles.avatarWrapper, { borderColor: theme.border, borderWidth: 1 }]}>
+                                    {photoURL ? (
+                                        <>
+                                            <View style={styles.avatarImageWrapper}>
+                                                <Image
+                                                    source={{ uri: photoURL }}
+                                                    style={styles.avatarStyle}
+                                                />
+                                                {uploading && (
+                                                    <View style={[StyleSheet.absoluteFill, styles.uploadOverlay]}>
+                                                        <ActivityIndicator size="large" color={theme.primary} />
+                                                    </View>
+                                                )}
+                                            </View>
+                                            <View style={styles.cameraBadge}>
+                                                <Ionicons name="camera" size={16} color="#FFF" />
+                                            </View>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <View style={[styles.avatarPlaceholder, { backgroundColor: theme.card }]}>
+                                                {uploading ? (
+                                                    <ActivityIndicator size="large" color={theme.primary} />
+                                                ) : (
+                                                    <Ionicons name="person" size={50} color={theme.icon} />
+                                                )}
+                                            </View>
+                                            <View style={styles.cameraBadge}>
+                                                <Ionicons name="camera" size={16} color="#FFF" />
+                                            </View>
+                                        </>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                            <Text style={[styles.avatarHint, { color: theme.icon }]}>Tap to change profile picture</Text>
+                        </View>
+
                         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                             <View style={styles.inputGroup}>
                                 <Text style={[styles.label, { color: theme.icon }]}>Full Name</Text>
@@ -230,6 +318,77 @@ const styles = StyleSheet.create({
         padding: 20,
         borderRadius: 25,
         marginBottom: 20,
+    },
+    avatarContainer: {
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    avatarWrapper: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        padding: 5,
+        backgroundColor: '#FFF',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.1,
+                shadowRadius: 15,
+            },
+            android: {
+                elevation: 6,
+            },
+        }),
+    },
+    avatarPlaceholder: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 55,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    avatarStyle: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 55,
+    },
+    avatarImageWrapper: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 55,
+        overflow: 'hidden',
+    },
+    uploadOverlay: {
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cameraBadge: {
+        position: 'absolute',
+        zIndex: 999,
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#FF8C42',
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: '#FFF',
+    },
+    uploadLoader: {
+        position: 'absolute',
+        zIndex: 1,
+        alignSelf: 'center',
+        top: '40%',
+    },
+    avatarHint: {
+        fontSize: 12,
+        marginTop: 10,
+        fontWeight: '600',
     },
     inputGroup: {
         marginBottom: 20,
