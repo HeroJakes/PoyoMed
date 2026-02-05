@@ -52,6 +52,7 @@ export default function MedicineDetails() {
                         try {
                             const user = auth.currentUser;
                             if (!user) return;
+                            await cancelMedicationReminders(medicine.id);
                             await deleteDoc(doc(db, 'users', user.uid, 'medicines', medicine.id));
                             Alert.alert("Success", "Medicine deleted successfully", [
                                 { text: "OK", onPress: () => router.replace('/(tabs)/medicines') }

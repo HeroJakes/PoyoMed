@@ -21,6 +21,7 @@ import { DROP_OFF_LOCATIONS, FALLBACK_USER_LOCATION } from '../../constants/drop
 import { Colors, ThemeGradients } from '../../constants/theme';
 import { auth, db } from '../../firebase';
 import { useColorScheme } from '../../hooks/use-color-scheme';
+import { cancelMedicationReminders } from '../../utils/notificationUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -258,6 +259,7 @@ export default function ImpactScreen() {
                             if (!user) return;
 
                             const medRef = doc(db, 'users', user.uid, 'medicines', item.id);
+                            await cancelMedicationReminders(item.id);
                             await updateDoc(medRef, {
                                 status: 'Recycled',
                                 recycledAt: new Date().toISOString()

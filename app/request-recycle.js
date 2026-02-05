@@ -20,6 +20,7 @@ import { DROP_OFF_LOCATIONS } from '../constants/dropOffLocations';
 import { Colors, ThemeGradients } from '../constants/theme';
 import { auth, db } from '../firebase';
 import { useColorScheme } from '../hooks/use-color-scheme';
+import { cancelMedicationReminders } from '../utils/notificationUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -145,7 +146,8 @@ export default function RequestRecycleScreen() {
             await addDoc(collection(db, 'recyclingRequests'), requestData);
 
             // Update all selected medicines to track this request
-            const updatePromises = selectedMeds.map(medId => {
+            const updatePromises = selectedMeds.map(async medId => {
+                await cancelMedicationReminders(medId);
                 const medRef = doc(db, 'users', user.uid, 'medicines', medId);
                 return updateDoc(medRef, {
                     status: 'Pending Pickup',
