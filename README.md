@@ -30,9 +30,10 @@ PoyoMed is primary-focused on medical waste reduction.
 ### 2. 🤖 Advanced AI Intelligence (Gemini 2.0)
 Our AI doesn't just scan; it understands, protects, and simplifies.
 - **Smart Scanner**: Contextual extraction of generic names, dosages, and intelligent expiry date prediction.
-- **AI Interaction Guard**: **[NEW]** Proactively checks new scans against your active medications to warn of dangerous drug-drug interactions.
-- **Jargon Decoder**: **[NEW]** Simplifies complex medical instructions into clear, actionable tips for safe usage.
+- **AI Interaction Guard**: Proactively checks new scans against your active medications to warn of dangerous drug-drug interactions.
+- **Jargon Decoder**: Simplifies complex medical instructions into clear, actionable tips for safe usage.
 - **Spelling Normalization**: Automatically corrects medicine name errors from low-quality scans.
+- **Confidence Scoring**: Self-evaluates scan quality and warns users if data verification is required due to low visibility.
 
 ### 3. 🏥 Holistic Health Management
 - **Smart Schedule**: Real-time dose tracking and "Daily Health Tips" to boost wellness.
@@ -58,7 +59,7 @@ PoyoMed features a unique design system called **Warmth**:
 ## ⚙️ Google Technology Utilization
 We utilized a "Cause-and-Effect" approach to integrate Google's powerful ecosystem:
 
-- **Google Gemini 2.5 Flash**: We used Gemini's latest multimodal capabilities to analyze medicine labels in real-time. This **allowed our system to provide instant, contextual extraction** of complex medical data (dosage, expiry, risk), leading to a 70% reduction in manual entry errors and ensuring safer disposal.
+- **Google Gemini 2.5 Flash**: We used Gemini's latest multimodal capabilities to analyze medicine labels in real-time. This **allowed our system to provide instant, contextual extraction** of complex medical data (dosage, expiry, risk). We also enforced **Strict JSON Output Mode** to ensure 100% deterministic data parsing, eliminating AI "chatter" and system crashes.
 - **Firebase Firestore**: We implemented Firestore for real-time data synchronization. This **enabled seamless state management** between the AI analysis and the user's dashboard, ensuring that safety alerts (like Low Stock or Expiring meds) are delivered immediately across all devices.
 - **Google Maps (Native Linking)**: We integrated location services to connect users with drop-off points. This **simplified the recycling path**, making it as easy for a user to recycle medicine as it is to find a nearby pharmacy, directly increasing the likelihood of responsible disposal.
 
