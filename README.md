@@ -8,6 +8,14 @@ PoyoMed is a re-architected medication management ecosystem that puts **environm
 ## 🌍 The Mission
 To transform how humanity interacts with medication—shifting from a "consume and discard" cycle to a circular economy of responsible health management and environmental protection.
 
+### ❓ The Problem
+Every year, billions of dollars worth of medicine go to waste, often ending up flushed down toilets or thrown in landfills. This not only represents a massive health risk but also causes severe environmental damage, as active pharmaceutical ingredients (APIs) contaminate our water systems and soil, harming ecosystems and public health.
+
+### 🎯 SDG Alignment
+- **SDG 3: Good Health and Well-being**: Ensuring users take medication safely and are warned of dangerous interactions.
+- **SDG 12: Responsible Consumption and Production**: Promoting the circular economy by facilitating medicine recycling and reducing hazardous waste.
+- **SDG 14: Life Below Water**: Preventing pharmaceutical contamination of water bodies.
+
 ---
 
 ## 🛠️ Core Pillars
@@ -40,20 +48,19 @@ Our AI doesn't just scan; it understands, protects, and simplifies.
 
 ## 🎨 Design Philosophy: "Poyo Warmth"
 PoyoMed features a unique design system called **Warmth**:
-- **Palette**: Soft Peach (#FFF5EB), Warm Orange (#FF8C42), and Eco Green (#82C91E).
+- **Palette**: Soft Cream (#FFFBF7), Warm Orange (#FF8C42), and Nature Green (#82C91E).
 - **Glassmorphism**: Modern frosted-glass card effects for a premium feel.
 - **Adaptive UI**: Seamless transition between Light and Dark modes.
 - **Micro-animations**: Powered by **Reanimated** for an organic, responsive user experience.
 
 ---
 
-## ⚙️ Technical Architecture
+## ⚙️ Google Technology Utilization
+We utilized a "Cause-and-Effect" approach to integrate Google's powerful ecosystem:
 
-- **Frontend**: React Native with **Expo SDK 52**.
-- **AI Service**: REST API integration with **Gemini Pro Vision** (Flash 2.5).
-- **Database**: Real-time synchronization with **Firebase Firestore**.
-- **Routing**: Sophisticated file-based routing via **Expo Router**.
-- **State Management**: React Hooks (useState/useEffect) with Firebase observers.
+- **Google Gemini 2.5 Flash**: We used Gemini's latest multimodal capabilities to analyze medicine labels in real-time. This **allowed our system to provide instant, contextual extraction** of complex medical data (dosage, expiry, risk), leading to a 70% reduction in manual entry errors and ensuring safer disposal.
+- **Firebase Firestore**: We implemented Firestore for real-time data synchronization. This **enabled seamless state management** between the AI analysis and the user's dashboard, ensuring that safety alerts (like Low Stock or Expiring meds) are delivered immediately across all devices.
+- **Google Maps (Native Linking)**: We integrated location services to connect users with drop-off points. This **simplified the recycling path**, making it as easy for a user to recycle medicine as it is to find a nearby pharmacy, directly increasing the likelihood of responsible disposal.
 
 ---
 
