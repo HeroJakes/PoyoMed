@@ -17,9 +17,10 @@ if (!API_KEY) {
 /**
  * Sends a prompt (and optional image data) to Gemini.
  * @param {string|Array} contents - A string prompt or an array of parts (text/image).
+ * @param {boolean} isJsonMode - If true, enforces a strict JSON response.
  * @returns {Promise<string>} - The AI's response text.
  */
-export async function askGemini(contents) {
+export async function askGemini(contents, isJsonMode = false) {
     if (!API_KEY) {
         console.error("EXPO_PUBLIC_GEMINI_API_KEY is not defined in .env");
         throw new Error("API Key is missing. Please check your .env file and restart the server.");
@@ -52,11 +53,21 @@ export async function askGemini(contents) {
         formattedContents = [{ role: 'user', parts: [{ text: contents }] }];
     }
 
+    const body = {
+        contents: formattedContents
+    };
+
+    if (isJsonMode) {
+        body.generationConfig = {
+            response_mime_type: "application/json"
+        };
+    }
+
     try {
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: formattedContents })
+            body: JSON.stringify(body)
         });
 
         if (!response.ok) {
@@ -105,9 +116,8 @@ Return ONLY a JSON object with these keys:
 IMPORTANT: If no significant interaction is found, return {"hasInteraction": false}. Do not halluncinate risks. Focus on clinically significant drug-drug interactions.`;
 
     try {
-        const responseText = await askGemini(prompt);
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        return jsonMatch ? JSON.parse(jsonMatch[0]) : { hasInteraction: false };
+        const responseText = await askGemini(prompt, true);
+        return JSON.parse(responseText);
     } catch (error) {
         console.error("❌ Drug Interaction Check Error:", error);
         return { hasInteraction: false }; // Fallback to safe mode

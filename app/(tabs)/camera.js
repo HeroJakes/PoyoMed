@@ -128,7 +128,7 @@ export default function CameraScreen() {
 
             setAnalysisStep(2); // Reading dosage
 
-            const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions.
+            const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions, category, confidenceScore.
 
 Logic for extraction:
 - name: The brand or generic name of the medicine. Normalize and correct any obvious misspellings (e.g., if the text says "fver", return "Fever").
@@ -157,6 +157,7 @@ Logic for extraction:
 - isEstimated: Boolean. True if the expiry was estimated from a dispensed date, false if a clear expiry date was found.
 - instructions: Any other usage notes (e.g., 'After food').
 - category: One of 'General', 'Painkillers', 'Antibiotics', 'Supplements', 'Vitamins', 'Chronic', 'First Aid'. Choose the best fit or 'General' if unsure.
+- confidenceScore: A number from 0 to 100 representing your confidence in this extraction. If labels are blurry or partially obscured, provide a lower score.
 
 If a field is not found, use an empty string (or 1 for timesPerDay, false for isEstimated, 'General' for category).`;
 
@@ -168,13 +169,12 @@ If a field is not found, use an empty string (or 1 for timesPerDay, false for is
                         mimeType: "image/jpeg",
                     },
                 },
-            ]);
+            ], true);
 
             setAnalysisStep(3); // Analyzing frequency
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-            const result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+            const result = JSON.parse(responseText);
 
             // Navigate to Add Medicine with pre-filled data
             router.push({
@@ -210,7 +210,7 @@ If a field is not found, use an empty string (or 1 for timesPerDay, false for is
                 await new Promise(resolve => setTimeout(resolve, 600));
                 setAnalysisStep(2);
 
-                const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions.
+                const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions, category, confidenceScore.
 
 Logic for extraction:
 - name: The brand or generic name of the medicine. Normalize and correct any obvious misspellings (e.g., if the text says "fver", return "Fever").
@@ -239,6 +239,7 @@ Logic for extraction:
 - isEstimated: Boolean. True if the expiry was estimated from a dispensed date, false if a clear expiry date was found.
 - instructions: Any other usage notes (e.g., 'After food').
 - category: One of 'General', 'Painkillers', 'Antibiotics', 'Supplements', 'Vitamins', 'Chronic', 'First Aid'. Choose the best fit or 'General' if unsure.
+- confidenceScore: A number from 0 to 100 representing your confidence in this extraction. If labels are blurry or partially obscured, provide a lower score.
 
 If a field is not found, use an empty string (or 1 for timesPerDay, false for isEstimated, 'General' for category).`;
 
@@ -250,13 +251,12 @@ If a field is not found, use an empty string (or 1 for timesPerDay, false for is
                             mimeType: "image/jpeg",
                         },
                     },
-                ]);
+                ], true);
 
                 setAnalysisStep(3);
                 await new Promise(resolve => setTimeout(resolve, 400));
 
-                const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-                const aiResult = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+                const aiResult = JSON.parse(responseText);
 
                 router.push({
                     pathname: '/add-medicine',

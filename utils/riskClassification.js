@@ -97,17 +97,16 @@ export async function classifyMedicineRisk(medicineName, category = '') {
         // If no match, use AI classification
         const prompt = `Classify this medicine's disposal risk level: "${medicineName}".
     
-Return ONLY one word: "low", "medium", or "high"
+Return a JSON object with a single key "risk" and one of these values: "low", "medium", or "high".
 
 Guidelines:
 - HIGH: Antibiotics, controlled drugs, opioids, chemotherapy, immunosuppressants
 - MEDIUM: OTC painkillers, prescription medications, antidepressants, blood pressure meds
-- LOW: Vitamins, supplements, antacids, cough drops
+- LOW: Vitamins, supplements, antacids, cough drops`;
 
-Answer:`;
-
-        const response = await askGemini([prompt]);
-        const riskLevel = response.toLowerCase().trim();
+        const response = await askGemini(prompt, true);
+        const result = JSON.parse(response);
+        const riskLevel = result.risk?.toLowerCase().trim();
 
         // Validate response
         if (Object.values(RISK_LEVELS).includes(riskLevel)) {

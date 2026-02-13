@@ -62,6 +62,7 @@ export default function AddMedicine() {
     const [customCategory, setCustomCategory] = useState('');
     const [isGeneratingTips, setIsGeneratingTips] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [confidenceScore, setConfidenceScore] = useState(100);
 
     useEffect(() => {
         if (initialMedicine && initialMedicine.times) {
@@ -130,6 +131,9 @@ export default function AddMedicine() {
                 if (data.category) {
                     const cat = data.category.charAt(0).toUpperCase() + data.category.slice(1).toLowerCase();
                     setCategory(cat);
+                }
+                if (data.confidenceScore !== undefined) {
+                    setConfidenceScore(parseInt(data.confidenceScore));
                 }
             } catch (e) {
                 console.error("Error parsing scanned data:", e);
@@ -372,6 +376,19 @@ export default function AddMedicine() {
                     <Text style={[styles.headerTitle, { color: theme.text }]}>{isEditMode ? 'Edit Medicine' : 'Add Medicine'}</Text>
                     <View style={{ width: 44 }} />
                 </View>
+
+                {confidenceScore < 80 && (
+                    <View style={[styles.confidenceWarning, { backgroundColor: '#FFF9DB', borderColor: '#F59F00' }]}>
+                        <Ionicons name="warning" size={20} color="#F59F00" />
+                        <View style={styles.confidenceTextContainer}>
+                            <Text style={styles.confidenceTitle}>Low Confidence Scan ({confidenceScore}%)</Text>
+                            <Text style={styles.confidenceSubtitle}>The image might be blurry. Please double-check the details below.</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => setConfidenceScore(100)}>
+                            <Ionicons name="close-circle" size={20} color="#F59F00" />
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 <ScrollView
                     showsVerticalScrollIndicator={false}
@@ -1000,5 +1017,28 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         marginTop: 8,
         textAlign: 'right',
+    },
+    confidenceWarning: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        marginHorizontal: 20,
+        marginTop: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        gap: 12,
+    },
+    confidenceTextContainer: {
+        flex: 1,
+    },
+    confidenceTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#856404',
+    },
+    confidenceSubtitle: {
+        fontSize: 12,
+        color: '#856404',
+        marginTop: 2,
     },
 });
