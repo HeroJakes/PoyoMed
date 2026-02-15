@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Alert,
     Dimensions,
@@ -17,12 +17,25 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import Animated, {
+    Easing,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../constants/theme';
 import { auth, db } from '../firebase';
 import { useColorScheme } from '../hooks/use-color-scheme';
 
 const { width, height } = Dimensions.get('window');
+
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -36,6 +49,23 @@ export default function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Button pulse animation
+    const btnScale = useSharedValue(1);
+
+    useEffect(() => {
+        btnScale.value = withRepeat(
+            withSequence(
+                withTiming(1.02, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+                withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
+            ),
+            -1,
+            true
+        );
+    }, []);
+
+    const btnAnimStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: btnScale.value }],
+    }));
 
     const handleRegister = async () => {
         if (!email || !password || !name) {
@@ -65,7 +95,6 @@ export default function RegisterScreen() {
             Alert.alert('Success', 'Account created successfully!');
             router.replace('/(tabs)');
         } catch (error) {
-            // console.error('Registration error:', error);
             let errorMessage = 'An unexpected error occurred.';
             if (error.code === 'auth/email-already-in-use') {
                 errorMessage = 'This email is already in use.';
@@ -80,93 +109,145 @@ export default function RegisterScreen() {
         }
     };
 
+    const handleSocialLogin = (provider) => {
+        Alert.alert('Coming Soon', `${provider} sign-up will be available soon!`);
+    };
+
     return (
         <View style={styles.container}>
+            {/* Gradient Top Section */}
             <LinearGradient
-                colors={gradients.main}
-                style={StyleSheet.absoluteFill}
+                colors={gradients.warm}
+                style={styles.topSection}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-            />
+            >
+                <SafeAreaView>
+                    {/* Back Button */}
+                    <Animated.View entering={FadeIn.duration(400)}>
+                        <TouchableOpacity
+                            style={styles.backBtn}
+                            onPress={() => router.back()}
+                            disabled={isLoading}
+                        >
+                            <Ionicons name="chevron-back" size={24} color="#fff" />
+                            <Text style={styles.backText}>Back</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
 
-            <SafeAreaView style={{ flex: 1 }}>
+                    {/* Logo + Title */}
+                    <Animated.View
+                        entering={FadeIn.duration(600).easing(Easing.out(Easing.exp))}
+                        style={styles.topContent}
+                    >
+                        <Image
+                            source={require('../assets/images/logo.png')}
+                            style={styles.logoImage}
+                            resizeMode="contain"
+                        />
+                        <Text style={styles.heroTitle}>Create Your Account</Text>
+                        <Text style={styles.heroSubtitle}>
+                            We're here to help you manage{'\n'}your health. <Text style={styles.heroSubtitleBold}>Are you ready?</Text>
+                        </Text>
+                    </Animated.View>
+                </SafeAreaView>
+            </LinearGradient>
+
+            {/* White Card Bottom */}
+            <Animated.View
+                entering={FadeInUp.delay(200).duration(500).easing(Easing.out(Easing.exp))}
+                style={[styles.bottomCard, { backgroundColor: theme.background }]}
+            >
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={{ flex: 1 }}
                 >
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} disabled={isLoading}>
-                            <Ionicons name="chevron-back" size={24} color={theme.text} />
-                        </TouchableOpacity>
-
-                        <View style={styles.header}>
-                            <View style={styles.logoContainer}>
-                                <Image
-                                    source={require('../assets/images/logo.png')}
-                                    style={styles.logoImage}
-                                    resizeMode="contain"
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.cardContent}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {/* Full Name Input */}
+                        <Animated.View
+                            entering={FadeInDown.delay(350).duration(400).easing(Easing.out(Easing.exp))}
+                        >
+                            <View style={[styles.inputContainer, { borderColor: theme.border }]}>
+                                <TextInput
+                                    placeholder="Enter full name"
+                                    placeholderTextColor={theme.icon + '99'}
+                                    style={[styles.input, { color: theme.text }]}
+                                    value={name}
+                                    onChangeText={setName}
+                                    editable={!isLoading}
                                 />
                             </View>
-                            <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
-                            <Text style={[styles.subtitle, { color: theme.icon }]}>Join PoyoMed and start managing your health better</Text>
-                        </View>
+                        </Animated.View>
 
-                        <View style={styles.form}>
-                            <View style={styles.inputGroup}>
-                                <Text style={[styles.label, { color: theme.text }]}>Full Name</Text>
-                                <View style={[styles.inputContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-                                    <Ionicons name="person-outline" size={20} color={theme.icon} style={styles.inputIcon} />
-                                    <TextInput
-                                        placeholder="Enter your full name"
-                                        placeholderTextColor={theme.icon}
-                                        style={[styles.input, { color: theme.text }]}
-                                        value={name}
-                                        onChangeText={setName}
-                                        editable={!isLoading}
-                                    />
-                                </View>
+                        {/* Email Input */}
+                        <Animated.View
+                            entering={FadeInDown.delay(450).duration(400).easing(Easing.out(Easing.exp))}
+                        >
+                            <View style={[styles.inputContainer, { borderColor: theme.border }]}>
+                                <TextInput
+                                    placeholder="Enter email"
+                                    placeholderTextColor={theme.icon + '99'}
+                                    style={[styles.input, { color: theme.text }]}
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    editable={!isLoading}
+                                />
                             </View>
+                        </Animated.View>
 
-                            <View style={styles.inputGroup}>
-                                <Text style={[styles.label, { color: theme.text }]}>Email</Text>
-                                <View style={[styles.inputContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-                                    <Ionicons name="mail-outline" size={20} color={theme.icon} style={styles.inputIcon} />
-                                    <TextInput
-                                        placeholder="Enter your email"
-                                        placeholderTextColor={theme.icon}
-                                        style={[styles.input, { color: theme.text }]}
-                                        value={email}
-                                        onChangeText={setEmail}
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                        editable={!isLoading}
+                        {/* Password Input */}
+                        <Animated.View
+                            entering={FadeInDown.delay(550).duration(400).easing(Easing.out(Easing.exp))}
+                        >
+                            <View style={[styles.inputContainer, { borderColor: theme.border }]}>
+                                <TextInput
+                                    placeholder="Enter password"
+                                    placeholderTextColor={theme.icon + '99'}
+                                    style={[styles.input, { color: theme.text }]}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry={!showPassword}
+                                    editable={!isLoading}
+                                />
+                                <TouchableOpacity
+                                    onPress={() => setShowPassword(!showPassword)}
+                                    disabled={isLoading}
+                                    style={styles.eyeBtn}
+                                >
+                                    <Ionicons
+                                        name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                        size={20}
+                                        color={theme.icon}
                                     />
-                                </View>
+                                </TouchableOpacity>
                             </View>
+                        </Animated.View>
 
-                            <View style={styles.inputGroup}>
-                                <Text style={[styles.label, { color: theme.text }]}>Password</Text>
-                                <View style={[styles.inputContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-                                    <Ionicons name="lock-closed-outline" size={20} color={theme.icon} style={styles.inputIcon} />
-                                    <TextInput
-                                        placeholder="Create a password"
-                                        placeholderTextColor={theme.icon}
-                                        style={[styles.input, { color: theme.text }]}
-                                        value={password}
-                                        onChangeText={setPassword}
-                                        secureTextEntry={!showPassword}
-                                        editable={!isLoading}
-                                    />
-                                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} disabled={isLoading}>
-                                        <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={theme.icon} />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
+                        {/* Forgot Password */}
+                        <Animated.View
+                            entering={FadeInDown.delay(600).duration(400).easing(Easing.out(Easing.exp))}
+                            style={styles.forgotRow}
+                        >
+                            <TouchableOpacity disabled={isLoading}>
+                                <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>Forgot password?</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
 
-                            <TouchableOpacity
-                                style={[styles.registerBtn, isLoading && { opacity: 0.7 }]}
+                        {/* Get Started Button */}
+                        <Animated.View
+                            entering={FadeInDown.delay(700).duration(400).easing(Easing.out(Easing.exp))}
+                        >
+                            <AnimatedTouchable
+                                style={[styles.registerBtn, isLoading && { opacity: 0.7 }, !isLoading && btnAnimStyle]}
                                 onPress={handleRegister}
                                 disabled={isLoading}
+                                activeOpacity={0.85}
                             >
                                 <LinearGradient
                                     colors={gradients.warm}
@@ -174,20 +255,59 @@ export default function RegisterScreen() {
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
                                 >
-                                    <Text style={styles.registerBtnText}>{isLoading ? 'Creating Account...' : 'Sign Up'}</Text>
+                                    <Text style={styles.registerBtnText}>{isLoading ? 'Creating Account...' : 'Get Started'}</Text>
                                 </LinearGradient>
-                            </TouchableOpacity>
-                        </View>
+                            </AnimatedTouchable>
+                        </Animated.View>
 
-                        <View style={styles.footer}>
+                        {/* Social Login Divider */}
+                        <Animated.View
+                            entering={FadeInDown.delay(800).duration(400).easing(Easing.out(Easing.exp))}
+                            style={styles.dividerRow}
+                        >
+                            <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+                            <Text style={[styles.dividerText, { color: theme.icon }]}>Sign up with</Text>
+                            <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+                        </Animated.View>
+
+                        {/* Social Icons */}
+                        <Animated.View
+                            entering={FadeInDown.delay(900).duration(400).easing(Easing.out(Easing.exp))}
+                            style={styles.socialRow}
+                        >
+                            <TouchableOpacity
+                                style={[styles.socialBtn, { borderColor: theme.border }]}
+                                onPress={() => handleSocialLogin('Facebook')}
+                            >
+                                <Ionicons name="logo-facebook" size={24} color="#1877F2" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.socialBtn, { borderColor: theme.border }]}
+                                onPress={() => handleSocialLogin('Google')}
+                            >
+                                <Ionicons name="logo-google" size={24} color="#EA4335" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.socialBtn, { borderColor: theme.border }]}
+                                onPress={() => handleSocialLogin('Apple')}
+                            >
+                                <Ionicons name="logo-apple" size={24} color={theme.text} />
+                            </TouchableOpacity>
+                        </Animated.View>
+
+                        {/* Footer */}
+                        <Animated.View
+                            entering={FadeInDown.delay(1000).duration(400).easing(Easing.out(Easing.exp))}
+                            style={styles.footer}
+                        >
                             <Text style={[styles.footerText, { color: theme.icon }]}>Already have an account? </Text>
                             <TouchableOpacity onPress={() => router.push('/login')} disabled={isLoading}>
-                                <Text style={[styles.signInText, { color: theme.primary }]}>Sign In</Text>
+                                <Text style={[styles.signInText, { color: theme.primary }]}>Log In</Text>
                             </TouchableOpacity>
-                        </View>
+                        </Animated.View>
                     </ScrollView>
                 </KeyboardAvoidingView>
-            </SafeAreaView>
+            </Animated.View>
         </View>
     );
 }
@@ -196,70 +316,102 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    scrollContent: {
-        padding: 24,
-        paddingTop: 20,
+    /* ── Top gradient section ── */
+    topSection: {
+        paddingBottom: 50,
+        paddingHorizontal: 24,
     },
     backBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        justifyContent: 'center',
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginTop: 8,
+        alignSelf: 'flex-start',
+        gap: 4,
     },
-    header: {
+    backText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    topContent: {
         alignItems: 'center',
-        marginBottom: 40,
-    },
-    logoContainer: {
-        marginBottom: -50,
+        marginTop: 10,
     },
     logoImage: {
-        width: 180,
-        height: 180,
+        width: 170,
+        height: 170,
+        marginBottom: -50,
     },
-    title: {
+    heroTitle: {
         fontSize: 28,
         fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    subtitle: {
-        fontSize: 16,
+        color: '#fff',
+        marginBottom: 10,
         textAlign: 'center',
-        lineHeight: 24,
     },
-    form: {
-        marginBottom: 30,
-    },
-    inputGroup: {
-        marginBottom: 20,
-    },
-    label: {
+    heroSubtitle: {
         fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 8,
-        marginLeft: 4,
+        color: 'rgba(255,255,255,0.85)',
+        textAlign: 'center',
+        lineHeight: 20,
     },
+    heroSubtitleBold: {
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    /* ── White card bottom ── */
+    bottomCard: {
+        flex: 1,
+        marginTop: -30,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.08,
+                shadowRadius: 12,
+            },
+            android: {
+                elevation: 8,
+            },
+        }),
+    },
+    cardContent: {
+        padding: 28,
+        paddingTop: 32,
+    },
+    /* ── Inputs ── */
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        borderWidth: 1,
+        borderRadius: 14,
         paddingHorizontal: 16,
-        height: 56,
-        borderRadius: 16,
-    },
-    inputIcon: {
-        marginRight: 12,
+        height: 54,
+        marginBottom: 16,
     },
     input: {
         flex: 1,
         fontSize: 16,
     },
+    eyeBtn: {
+        padding: 4,
+    },
+    /* ── Forgot password ── */
+    forgotRow: {
+        alignItems: 'flex-end',
+        marginBottom: 24,
+    },
+    forgotPasswordText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    /* ── Button ── */
     registerBtn: {
-        height: 56,
-        borderRadius: 28,
+        height: 54,
+        borderRadius: 27,
         overflow: 'hidden',
-        marginTop: 10,
     },
     registerGradient: {
         flex: 1,
@@ -271,17 +423,47 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
+    /* ── Social ── */
+    dividerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 28,
+        marginBottom: 20,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+    },
+    dividerText: {
+        fontSize: 13,
+        marginHorizontal: 14,
+        fontWeight: '500',
+    },
+    socialRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 20,
+        marginBottom: 28,
+    },
+    socialBtn: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    /* ── Footer ── */
     footer: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
     },
     footerText: {
-        fontSize: 15,
+        fontSize: 14,
     },
     signInText: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: 'bold',
     },
 });

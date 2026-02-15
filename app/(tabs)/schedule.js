@@ -13,6 +13,10 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Animated, {
+  Easing,
+  FadeInDown,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../../constants/theme';
 import { auth, db } from '../../firebase';
@@ -144,100 +148,118 @@ export default function ScheduleScreen() {
           contentContainerStyle={styles.scrollContent}
         >
           {/* Header Section */}
-          <View style={styles.header}>
+          <Animated.View
+            entering={FadeInDown.duration(500).easing(Easing.out(Easing.exp))}
+            style={styles.header}
+          >
             <View>
               <Text style={[styles.title, { color: theme.text }]}>Schedule</Text>
               <Text style={[styles.subtitle, { color: theme.icon }]}>Don't miss a single dose today</Text>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Featured Insight Card */}
-          <LinearGradient
-            colors={gradients.warm}
-            style={styles.heroCard}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <Animated.View
+            entering={FadeInDown.delay(150).duration(500).easing(Easing.out(Easing.exp))}
           >
-            <View style={styles.heroContent}>
-              <View>
-                <Text style={[styles.heroTitle, { color: '#FFFFFF' }]}>Daily Health Tip</Text>
-                <Text style={[styles.heroSubtitle, { color: 'rgba(255,255,255,0.9)' }]}>Stay hydrated! Drinking warm water in the morning boosts metabolism.</Text>
+            <LinearGradient
+              colors={gradients.warm}
+              style={styles.heroCard}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.heroContent}>
+                <View>
+                  <Text style={[styles.heroTitle, { color: '#FFFFFF' }]}>Daily Health Tip</Text>
+                  <Text style={[styles.heroSubtitle, { color: 'rgba(255,255,255,0.9)' }]}>Stay hydrated! Drinking warm water in the morning boosts metabolism.</Text>
+                </View>
+                <View style={styles.heroIconContainer}>
+                  <Ionicons name="water" size={40} color={'#FFFFFF'} />
+                </View>
               </View>
-              <View style={styles.heroIconContainer}>
-                <Ionicons name="water" size={40} color={'#FFFFFF'} />
-              </View>
-            </View>
-            <TouchableOpacity style={[styles.heroButton, { backgroundColor: theme.card }]} onPress={handleLearnMore}>
-              <Text style={[styles.heroButtonText, { color: theme.text }]}>Learn More</Text>
-              <Ionicons name="arrow-forward" size={16} color={theme.primary} />
-            </TouchableOpacity>
-          </LinearGradient>
+              <TouchableOpacity style={[styles.heroButton, { backgroundColor: theme.card }]} onPress={handleLearnMore}>
+                <Text style={[styles.heroButtonText, { color: theme.text }]}>Learn More</Text>
+                <Ionicons name="arrow-forward" size={16} color={theme.primary} />
+              </TouchableOpacity>
+            </LinearGradient>
+          </Animated.View>
 
           {/* Horizontal Section - Today's Reminders */}
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Today's Schedule</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/medicines')}>
-              <Text style={[styles.seeAll, { color: theme.primary }]}>See All</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScroll}
-            snapToInterval={width * 0.7 + 15}
-            decelerationRate="fast"
+          <Animated.View
+            entering={FadeInDown.delay(300).duration(500).easing(Easing.out(Easing.exp))}
           >
-            {todaysMedicines.length > 0 ? (
-              todaysMedicines.map((med) => (
-                <ScheduleCard
-                  key={med.id}
-                  medicine={med}
-                  theme={theme}
-                  router={router}
-                />
-              ))
-            ) : (
-              <View style={{ padding: 20, alignItems: 'center', width: width - 40 }}>
-                <Text style={{ color: theme.icon }}>No medicines scheduled for today.</Text>
-              </View>
-            )}
-          </ScrollView>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Today's Schedule</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/medicines')}>
+                <Text style={[styles.seeAll, { color: theme.primary }]}>See All</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScroll}
+              snapToInterval={width * 0.7 + 15}
+              decelerationRate="fast"
+            >
+              {todaysMedicines.length > 0 ? (
+                todaysMedicines.map((med) => (
+                  <ScheduleCard
+                    key={med.id}
+                    medicine={med}
+                    theme={theme}
+                    router={router}
+                  />
+                ))
+              ) : (
+                <View style={{ padding: 20, alignItems: 'center', width: width - 40 }}>
+                  <Text style={{ color: theme.icon }}>No medicines scheduled for today.</Text>
+                </View>
+              )}
+            </ScrollView>
+          </Animated.View>
 
           {/* Expiring Soon Section */}
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Expiring Soon</Text>
-          </View>
+          <Animated.View
+            entering={FadeInDown.delay(450).duration(500).easing(Easing.out(Easing.exp))}
+          >
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Expiring Soon</Text>
+            </View>
 
-          <View style={[styles.expiringContainer, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}>
-            {expiringMedicines.length > 0 ? (
-              expiringMedicines.map((med, index) => (
-                <View key={med.id}>
-                  <ExpiringItem
-                    title={med.name}
-                    days={`${med.daysLeft} days left`}
-                    icon={med.icon || 'medical'}
-                    color={theme.warning} // Or dynamic based on severity
-                    theme={theme}
-                    onRecycle={() => router.push('/')}
-                  />
-                  {index < expiringMedicines.length - 1 && (
-                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
-                  )}
+            <View style={[styles.expiringContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+              {expiringMedicines.length > 0 ? (
+                expiringMedicines.map((med, index) => (
+                  <View key={med.id}>
+                    <ExpiringItem
+                      title={med.name}
+                      days={`${med.daysLeft} days left`}
+                      icon={med.icon || 'medical'}
+                      color={theme.warning}
+                      theme={theme}
+                      onRecycle={() => router.push('/')}
+                    />
+                    {index < expiringMedicines.length - 1 && (
+                      <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                    )}
+                  </View>
+                ))
+              ) : (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ color: theme.icon }}>No medicines expiring soon.</Text>
                 </View>
-              ))
-            ) : (
-              <View style={{ padding: 20, alignItems: 'center' }}>
-                <Text style={{ color: theme.icon }}>No medicines expiring soon.</Text>
-              </View>
-            )}
-          </View>
+              )}
+            </View>
+          </Animated.View>
 
           {/* Quick Stats */}
-          <View style={styles.statsRow}>
+          <Animated.View
+            entering={FadeInDown.delay(600).duration(500).easing(Easing.out(Easing.exp))}
+            style={styles.statsRow}
+          >
             <StatItem label="Total Medicines" value={todaysMedicines.length.toString()} icon="medical" color="#82C91E" theme={theme} />
             <StatItem label="Expiring" value={expiringMedicines.length.toString()} icon="alert-circle" color="#FF8C42" theme={theme} />
-          </View>
+          </Animated.View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -256,7 +278,10 @@ function ScheduleCard({ medicine, theme, router }) {
       <View style={[styles.iconCircle, { backgroundColor: medicine.color + '20' }]}>
         <Ionicons name={medicine.icon} size={24} color={medicine.color} />
       </View>
-      <Text style={[styles.cardTime, { color: theme.icon }]}>{getNextDose(medicine.times)}</Text>
+      <View style={[styles.timePill, { backgroundColor: theme.primary + '10' }]}>
+        <Ionicons name="time-outline" size={12} color={theme.icon} />
+        <Text style={[styles.timePillText, { color: theme.icon }]}>{getNextDose(medicine.times)}</Text>
+      </View>
       <Text style={[styles.cardTitle, { color: theme.text }]}>{medicine.name}</Text>
       <View style={styles.cardFooter}>
         <Text style={[styles.cardSubtitle, { color: theme.icon }]} numberOfLines={1}>{medicine.dosage}</Text>
@@ -297,7 +322,7 @@ function ExpiringItem({ title, days, icon, color, theme, onRecycle }) {
 
 function StatItem({ label, value, icon, color, theme }) {
   return (
-    <View style={[styles.statItem, { backgroundColor: 'rgba(255,255,255,0.6)', borderColor: theme.border, borderWidth: 1 }]}>
+    <View style={[styles.statItem, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
       <View style={styles.statHeader}>
         <Ionicons name={icon} size={18} color={color} />
         <Text style={[styles.statLabel, { color: theme.icon }]}>{label}</Text>
@@ -420,6 +445,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
+  },
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  timePillText: {
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   cardTime: {
     fontSize: 12,

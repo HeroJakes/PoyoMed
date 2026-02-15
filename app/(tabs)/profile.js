@@ -15,6 +15,10 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import Animated, {
+    Easing,
+    FadeInDown,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -106,7 +110,10 @@ export default function ProfileScreen() {
             <SafeAreaView style={{ flex: 1 }}>
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                     {/* Header Section */}
-                    <View style={styles.header}>
+                    <Animated.View
+                        entering={FadeInDown.duration(500).easing(Easing.out(Easing.exp))}
+                        style={styles.header}
+                    >
                         <Text style={[styles.title, { color: theme.text }]}>Profile</Text>
                         <TouchableOpacity
                             style={[styles.settingsBtn, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
@@ -114,36 +121,43 @@ export default function ProfileScreen() {
                         >
                             <Ionicons name="cog-outline" size={22} color={theme.text} />
                         </TouchableOpacity>
-                    </View>
+                    </Animated.View>
 
                     {/* User Info Card */}
-                    <View style={[styles.userCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-                        <LinearGradient
-                            colors={gradients.warm}
-                            style={styles.avatarGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            {photoURL ? (
-                                <Image source={{ uri: photoURL }} style={styles.avatarImage} />
-                            ) : (
-                                <Ionicons name="sunny" size={40} color="#fff" />
-                            )}
-                        </LinearGradient>
-                        <View style={styles.userInfo}>
-                            <Text style={[styles.userName, { color: theme.text }]}>{userName}</Text>
-                            <Text style={[styles.userEmail, { color: theme.icon }]}>{userEmail}</Text>
+                    <Animated.View
+                        entering={FadeInDown.delay(150).duration(500).easing(Easing.out(Easing.exp))}
+                    >
+                        <View style={[styles.userCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                            <LinearGradient
+                                colors={gradients.warm}
+                                style={styles.avatarGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                {photoURL ? (
+                                    <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+                                ) : (
+                                    <Ionicons name="sunny" size={40} color="#fff" />
+                                )}
+                            </LinearGradient>
+                            <View style={styles.userInfo}>
+                                <Text style={[styles.userName, { color: theme.text }]}>{userName}</Text>
+                                <Text style={[styles.userEmail, { color: theme.icon }]}>{userEmail}</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={[styles.editBtn, { backgroundColor: theme.primary + '15' }]}
+                                onPress={() => router.push('/personal-info')}
+                            >
+                                <Text style={[styles.editBtnText, { color: theme.primary }]}>Edit</Text>
+                            </TouchableOpacity>
                         </View>
-                        <TouchableOpacity
-                            style={[styles.editBtn, { backgroundColor: theme.primary + '15' }]}
-                            onPress={() => router.push('/personal-info')}
-                        >
-                            <Text style={[styles.editBtnText, { color: theme.primary }]}>Edit</Text>
-                        </TouchableOpacity>
-                    </View>
+                    </Animated.View>
 
                     {/* Settings Sections */}
-                    <View style={styles.section}>
+                    <Animated.View
+                        entering={FadeInDown.delay(300).duration(500).easing(Easing.out(Easing.exp))}
+                        style={styles.section}
+                    >
                         <Text style={[styles.sectionTitle, { color: theme.icon }]}>Account</Text>
                         <View style={[styles.settingsGroup, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                             <SettingItem icon="person-outline" label="Personal Information" theme={theme} onPress={() => handleSettingPress('Personal Information')} />
@@ -152,16 +166,19 @@ export default function ProfileScreen() {
                             <View style={[styles.divider, { backgroundColor: theme.border }]} />
                             <SettingItem icon="shield-checkmark-outline" label="Security" theme={theme} onPress={() => handleSettingPress('Security')} />
                         </View>
-                    </View>
+                    </Animated.View>
 
-                    <View style={styles.section}>
+                    <Animated.View
+                        entering={FadeInDown.delay(400).duration(500).easing(Easing.out(Easing.exp))}
+                        style={styles.section}
+                    >
                         <Text style={[styles.sectionTitle, { color: theme.icon }]}>App Settings</Text>
                         <View style={[styles.settingsGroup, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                             <SettingItem icon="language-outline" label="Language" theme={theme} value="English" onPress={() => handleSettingPress('Language')} />
                             <View style={[styles.divider, { backgroundColor: theme.border }]} />
                             <SettingItem icon="help-circle-outline" label="Help & Support" theme={theme} onPress={() => handleSettingPress('Help & Support')} />
                         </View>
-                    </View>
+                    </Animated.View>
 
                     {/* Developer Tools */}
                     <View style={styles.section}>

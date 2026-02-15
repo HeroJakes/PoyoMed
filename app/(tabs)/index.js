@@ -17,6 +17,15 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import Animated, {
+    Easing,
+    FadeInDown,
+    runOnJS,
+    useAnimatedReaction,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DROP_OFF_LOCATIONS, FALLBACK_USER_LOCATION } from '../../constants/dropOffLocations';
 import { Colors, ThemeGradients } from '../../constants/theme';
@@ -45,6 +54,35 @@ function deg2rad(deg) {
     return deg * (Math.PI / 180);
 }
 
+// Animated number display component
+function AnimatedNumber({ value, suffix = '', style }) {
+    const animatedVal = useSharedValue(0);
+    const [displayText, setDisplayText] = useState(suffix === 'kg' ? '0.0kg' : '0');
+
+    useEffect(() => {
+        animatedVal.value = withTiming(value, {
+            duration: 1200,
+            easing: Easing.out(Easing.exp),
+        });
+    }, [value]);
+
+    useAnimatedReaction(
+        () => animatedVal.value,
+        (currentVal) => {
+            const text = suffix === 'kg'
+                ? (currentVal * 0.2).toFixed(1) + 'kg'
+                : Math.round(currentVal).toString();
+            runOnJS(setDisplayText)(text);
+        }
+    );
+
+    return (
+        <Text style={style}>
+            {displayText}
+        </Text>
+    );
+}
+
 export default function ImpactScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
@@ -63,6 +101,9 @@ export default function ImpactScreen() {
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+
+    // Progress bar animation
+    const progressWidth = useSharedValue(0);
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -292,6 +333,18 @@ export default function ImpactScreen() {
 
     const ecoLevel = getEcoLevel(itemsRecycledCount);
 
+    // Animate progress bar when eco level changes
+    useEffect(() => {
+        progressWidth.value = withTiming(ecoLevel.progress, {
+            duration: 1000,
+            easing: Easing.out(Easing.exp),
+        });
+    }, [ecoLevel.progress]);
+
+    const progressBarStyle = useAnimatedStyle(() => ({
+        width: `${progressWidth.value}%`,
+    }));
+
     return (
         <View style={styles.container}>
             <LinearGradient
@@ -310,7 +363,10 @@ export default function ImpactScreen() {
                     }
                 >
                     {/* Header Section */}
-                    <View style={styles.header}>
+                    <Animated.View
+                        entering={FadeInDown.duration(500).easing(Easing.out(Easing.exp))}
+                        style={styles.header}
+                    >
                         <View style={styles.headerLeft}>
                             <View style={[styles.avatarContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                                 {photoURL ? (
@@ -333,10 +389,13 @@ export default function ImpactScreen() {
                                 {notifications.length > 0 && <View style={[styles.notificationBadge, { backgroundColor: theme.danger, borderColor: theme.background }]} />}
                             </View>
                         </TouchableOpacity>
-                    </View>
+                    </Animated.View>
 
                     {/* Impact Dashboard */}
-                    <View style={styles.dashboardContainer}>
+                    <Animated.View
+                        entering={FadeInDown.delay(150).duration(600).easing(Easing.out(Easing.exp))}
+                        style={styles.dashboardContainer}
+                    >
                         <LinearGradient
                             colors={ECO_GRADIENT}
                             style={styles.impactCard}
@@ -345,12 +404,12 @@ export default function ImpactScreen() {
                         >
                             <View style={styles.impactStatsRow}>
                                 <View style={styles.impactStatLarge}>
-                                    <Text style={styles.impactValueLarge}>{itemsRecycledCount}</Text>
+                                    <AnimatedNumber value={itemsRecycledCount} style={styles.impactValueLarge} />
                                     <Text style={styles.impactLabelLarge}>Meds Saved</Text>
                                 </View>
                                 <View style={styles.impactDivider} />
                                 <View style={styles.impactStatLarge}>
-                                    <Text style={styles.impactValueLarge}>{(itemsRecycledCount * 0.2).toFixed(1)}kg</Text>
+                                    <AnimatedNumber value={itemsRecycledCount} suffix="kg" style={styles.impactValueLarge} />
                                     <Text style={styles.impactLabelLarge}>CO2 Reduced</Text>
                                 </View>
                             </View>
@@ -361,14 +420,17 @@ export default function ImpactScreen() {
                                     <Text style={styles.progressSubtext}>{ecoLevel.sub}</Text>
                                 </View>
                                 <View style={styles.progressBarBg}>
-                                    <View style={[styles.progressBarFill, { width: `${ecoLevel.progress}%` }]} />
+                                    <Animated.View style={[styles.progressBarFill, progressBarStyle]} />
                                 </View>
                             </View>
                         </LinearGradient>
-                    </View>
+                    </Animated.View>
 
                     {/* Drop-off Bag Section */}
-                    <View style={styles.sectionHeader}>
+                    <Animated.View
+                        entering={FadeInDown.delay(300).duration(500).easing(Easing.out(Easing.exp))}
+                        style={styles.sectionHeader}
+                    >
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>My Drop-off Bag</Text>
                         <View style={[styles.badgeCount, { backgroundColor: theme.primary }]}>
                             <Text style={styles.badgeText}>{readyForRecycle.length}</Text>
@@ -380,117 +442,148 @@ export default function ImpactScreen() {
                             <Ionicons name="paper-plane" size={14} color="#FFF" />
                             <Text style={styles.requestBtnText}>Request Pick-up</Text>
                         </TouchableOpacity>
-                    </View>
+                    </Animated.View>
 
-                    <View style={styles.bagContainer}>
+                    <Animated.View
+                        entering={FadeInDown.delay(400).duration(500).easing(Easing.out(Easing.exp))}
+                        style={styles.bagContainer}
+                    >
                         {readyForRecycle.length > 0 ? (
-                            readyForRecycle.map((item) => (
-                                <View key={item.id} style={[styles.bagItem, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-                                    <TouchableOpacity
-                                        style={styles.bagTouchArea}
-                                        onPress={() => router.push({
-                                            pathname: '/medicine-details',
-                                            params: {
-                                                id: item.id,
-                                                medicine: JSON.stringify(item)
-                                            }
-                                        })}
-                                    >
-                                        <View style={[styles.bagIconBox, { backgroundColor: (item.color || theme.primary) + '15' }]}>
-                                            <Ionicons name={item.icon || 'medical'} size={24} color={item.color || theme.primary} />
-                                        </View>
-                                        <View style={styles.bagContent}>
-                                            <Text style={[styles.bagName, { color: theme.text }]}>{item.name}</Text>
-                                            <Text style={[styles.bagStatus, { color: item.status === 'Expired' ? theme.danger : theme.warning }]}>
-                                                {item.status}
-                                            </Text>
-                                            <View style={[styles.riskTag, { backgroundColor: theme.background }]}>
-                                                <Text style={[styles.riskTagText, { color: theme.icon }]}>{(item.riskLevel || 'Medium').toUpperCase()} Risk</Text>
+                            readyForRecycle.map((item, index) => (
+                                <Animated.View
+                                    key={item.id}
+                                    entering={FadeInDown.delay(400 + index * 80).duration(400).easing(Easing.out(Easing.exp))}
+                                >
+                                    <View style={[styles.bagItem, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+                                        <TouchableOpacity
+                                            style={styles.bagTouchArea}
+                                            onPress={() => router.push({
+                                                pathname: '/medicine-details',
+                                                params: {
+                                                    id: item.id,
+                                                    medicine: JSON.stringify(item)
+                                                }
+                                            })}
+                                        >
+                                            <View style={[styles.bagIconBox, { backgroundColor: (item.color || theme.primary) + '15' }]}>
+                                                <Ionicons name={item.icon || 'medical'} size={24} color={item.color || theme.primary} />
                                             </View>
-                                        </View>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[styles.dropOffBtn, { backgroundColor: theme.primary }]}
-                                        onPress={() => handleRecycle(item)}
-                                    >
-                                        <Text style={styles.dropOffBtnText}>Drop off</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                            <View style={styles.bagContent}>
+                                                <Text style={[styles.bagName, { color: theme.text }]}>{item.name}</Text>
+                                                <Text style={[styles.bagStatus, { color: item.status === 'Expired' ? theme.danger : theme.warning }]}>
+                                                    {item.status}
+                                                </Text>
+                                                <View style={[styles.riskTag, { backgroundColor: theme.background }]}>
+                                                    <Text style={[styles.riskTagText, { color: theme.icon }]}>{(item.riskLevel || 'Medium').toUpperCase()} Risk</Text>
+                                                </View>
+                                            </View>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.dropOffBtn, { backgroundColor: theme.primary }]}
+                                            onPress={() => handleRecycle(item)}
+                                        >
+                                            <Text style={styles.dropOffBtnText}>Drop off</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </Animated.View>
                             ))
                         ) : (
-                            <View style={[styles.emptyBag, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-                                <Ionicons name="bag-check" size={48} color={theme.success + '40'} />
+                            <View style={[styles.emptyBag, { backgroundColor: theme.card, borderColor: theme.border + '80', borderWidth: 1.5 }]}>
+                                <View style={[styles.emptyBagIconCircle, { backgroundColor: theme.success + '12' }]}>
+                                    <Ionicons name="bag-check" size={36} color={theme.success + '70'} />
+                                </View>
                                 <Text style={[styles.emptyBagText, { color: theme.text }]}>Your bag is empty!</Text>
                                 <Text style={[styles.emptyBagSubtext, { color: theme.icon }]}>Check your medicine cabinet for expired items.</Text>
+                                <TouchableOpacity
+                                    style={[styles.emptyBagBtn, { backgroundColor: theme.primary + '12' }]}
+                                    onPress={() => router.push('/(tabs)/medicines')}
+                                >
+                                    <Text style={[styles.emptyBagBtnText, { color: theme.primary }]}>View Medicines</Text>
+                                    <Ionicons name="arrow-forward" size={14} color={theme.primary} />
+                                </TouchableOpacity>
                             </View>
                         )}
-                    </View>
+                    </Animated.View>
 
                     {/* Collection Points Map Preview Style */}
-                    <View style={styles.sectionHeader}>
+                    <Animated.View
+                        entering={FadeInDown.delay(500).duration(500).easing(Easing.out(Easing.exp))}
+                        style={styles.sectionHeader}
+                    >
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Find a Point</Text>
                         <TouchableOpacity onPress={() => handleGuidePress('Map View')}>
                             <Text style={[styles.seeAll, { color: theme.primary }]}>Open Map</Text>
                         </TouchableOpacity>
-                    </View>
+                    </Animated.View>
 
                     <View style={styles.pointsList}>
-                        {recyclingPoints.map((point) => (
-                            <TouchableOpacity
+                        {recyclingPoints.map((point, index) => (
+                            <Animated.View
                                 key={point.id}
-                                style={[styles.pointCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
-                                onPress={() => handlePointPress(point)}
+                                entering={FadeInDown.delay(550 + index * 80).duration(400).easing(Easing.out(Easing.exp))}
                             >
-                                <View style={styles.pointCardHeader}>
-                                    <View style={[styles.pointIconSmall, { backgroundColor: theme.primary + '15' }]}>
-                                        <Ionicons name={point.icon} size={20} color={theme.primary} />
+                                <TouchableOpacity
+                                    style={[styles.pointCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+                                    onPress={() => handlePointPress(point)}
+                                >
+                                    <View style={styles.pointCardHeader}>
+                                        <View style={[styles.pointIconSmall, { backgroundColor: theme.primary + '15' }]}>
+                                            <Ionicons name={point.icon} size={20} color={theme.primary} />
+                                        </View>
+                                        <View style={styles.pointInfo}>
+                                            <Text style={[styles.pointName, { color: theme.text }]}>{point.name}</Text>
+                                            <Text style={[styles.pointDist, { color: theme.primary }]}>{point.distance} away</Text>
+                                        </View>
+                                        <View style={[styles.pointTag, { backgroundColor: theme.background }]}>
+                                            <Text style={[styles.pointTagText, { color: theme.primary }]}>{point.badge}</Text>
+                                        </View>
                                     </View>
-                                    <View style={styles.pointInfo}>
-                                        <Text style={[styles.pointName, { color: theme.text }]}>{point.name}</Text>
-                                        <Text style={[styles.pointDist, { color: theme.primary }]}>{point.distance} away</Text>
+                                    <View style={[styles.pointCardFooter, { borderTopColor: theme.border }]}>
+                                        <View style={styles.pointDetail}>
+                                            <Ionicons name="time-outline" size={14} color={theme.icon} />
+                                            <Text style={[styles.pointDetailText, { color: theme.icon }]}>{point.hours}</Text>
+                                        </View>
+                                        <Ionicons name="navigate-circle" size={28} color={theme.primary} />
                                     </View>
-                                    <View style={[styles.pointTag, { backgroundColor: theme.background }]}>
-                                        <Text style={[styles.pointTagText, { color: theme.primary }]}>{point.badge}</Text>
-                                    </View>
-                                </View>
-                                <View style={[styles.pointCardFooter, { borderTopColor: theme.border }]}>
-                                    <View style={styles.pointDetail}>
-                                        <Ionicons name="time-outline" size={14} color={theme.icon} />
-                                        <Text style={[styles.pointDetailText, { color: theme.icon }]}>{point.hours}</Text>
-                                    </View>
-                                    <Ionicons name="navigate-circle" size={28} color={theme.primary} />
-                                </View>
-                            </TouchableOpacity>
+                                </TouchableOpacity>
+                            </Animated.View>
                         ))}
                     </View>
 
-                    {/* Edu Tips Horizontal */}
-                    <View style={styles.sectionHeader}>
+                    {/* Eco Tips Horizontal */}
+                    <Animated.View
+                        entering={FadeInDown.delay(700).duration(500).easing(Easing.out(Easing.exp))}
+                        style={styles.sectionHeader}
+                    >
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Eco Tips</Text>
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tipsRow}>
-                        <TipCard
-                            title="No Flushing!"
-                            desc="Meds in water harm fish & ecosystems."
-                            icon="water"
-                            color={WATER_GRADIENT}
-                            onPress={() => handleGuidePress('Water Protection')}
-                        />
-                        <TipCard
-                            title="Remove Info"
-                            desc="Protect your privacy on labels."
-                            icon="shield-checkmark"
-                            color={ECO_GRADIENT}
-                            onPress={() => handleGuidePress('Privacy')}
-                        />
-                        <TipCard
-                            title="Original Pack"
-                            desc="Keep meds in their original boxes."
-                            icon="cube"
-                            color={['#FAB005', '#F59F00']}
-                            onPress={() => handleGuidePress('Packaging')}
-                        />
-                    </ScrollView>
+                    </Animated.View>
+                    <Animated.View
+                        entering={FadeInDown.delay(750).duration(500).easing(Easing.out(Easing.exp))}
+                    >
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tipsRow}>
+                            <TipCard
+                                title="No Flushing!"
+                                desc="Meds in water harm fish & ecosystems."
+                                icon="water"
+                                color={WATER_GRADIENT}
+                                onPress={() => handleGuidePress('Water Protection')}
+                            />
+                            <TipCard
+                                title="Remove Info"
+                                desc="Protect your privacy on labels."
+                                icon="shield-checkmark"
+                                color={ECO_GRADIENT}
+                                onPress={() => handleGuidePress('Privacy')}
+                            />
+                            <TipCard
+                                title="Original Pack"
+                                desc="Keep meds in their original boxes."
+                                icon="cube"
+                                color={['#FAB005', '#F59F00']}
+                                onPress={() => handleGuidePress('Packaging')}
+                            />
+                        </ScrollView>
+                    </Animated.View>
                 </ScrollView>
 
                 <NotificationPopup
@@ -685,7 +778,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         padding: 24,
-        maxHeight: 600, // or dynamic
+        maxHeight: 600,
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
@@ -950,22 +1043,42 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     emptyBag: {
-        padding: 40,
+        padding: 32,
         borderRadius: 24,
         alignItems: 'center',
         justifyContent: 'center',
         borderStyle: 'dashed',
     },
+    emptyBagIconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
     emptyBagText: {
         fontSize: 18,
         fontWeight: 'bold',
-        marginTop: 16,
     },
     emptyBagSubtext: {
         fontSize: 14,
         textAlign: 'center',
-        marginTop: 8,
+        marginTop: 6,
         paddingHorizontal: 20,
+    },
+    emptyBagBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        marginTop: 16,
+        gap: 6,
+    },
+    emptyBagBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     seeAll: {
         fontSize: 14,

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import Animated, {
     Easing,
+    FadeInDown,
     useAnimatedStyle,
     useSharedValue,
     withTiming
@@ -235,15 +236,45 @@ export default function Medicines() {
 
                 {/* Medication List/Grid */}
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={viewMode === 'list' ? styles.listContent : styles.gridContent}>
-                    <View style={viewMode === 'grid' ? styles.gridRow : null}>
-                        {filteredMedications.map((med) => (
-                            viewMode === 'list' ? (
-                                <MedicationCard key={med.id} med={med} theme={theme} darkText={darkText} router={router} />
-                            ) : (
-                                <MedicationGridCard key={med.id} med={med} theme={theme} darkText={darkText} router={router} />
-                            )
-                        ))}
-                    </View>
+                    {filteredMedications.length === 0 && !loading ? (
+                        <Animated.View
+                            entering={FadeInDown.duration(500).easing(Easing.out(Easing.exp))}
+                            style={styles.emptyContainer}
+                        >
+                            <View style={[styles.emptyIconCircle, { backgroundColor: theme.primary + '12' }]}>
+                                <Ionicons name="medical-outline" size={48} color={theme.primary + '60'} />
+                            </View>
+                            <Text style={[styles.emptyTitle, { color: theme.text }]}>No medicines found</Text>
+                            <Text style={[styles.emptySubtitle, { color: theme.icon }]}>
+                                {searchQuery ? 'Try a different search term' : 'Add your first medicine to get started'}
+                            </Text>
+                            {!searchQuery && (
+                                <TouchableOpacity
+                                    style={[styles.emptyBtn, { backgroundColor: theme.primary }]}
+                                    onPress={() => router.push('/add-medicine')}
+                                >
+                                    <Ionicons name="add" size={18} color="#FFF" />
+                                    <Text style={styles.emptyBtnText}>Add Medicine</Text>
+                                </TouchableOpacity>
+                            )}
+                        </Animated.View>
+                    ) : (
+                        <View style={viewMode === 'grid' ? styles.gridRow : null}>
+                            {filteredMedications.map((med, index) => (
+                                <Animated.View
+                                    key={med.id}
+                                    entering={FadeInDown.delay(index * 60).duration(400).easing(Easing.out(Easing.exp))}
+                                    style={viewMode === 'grid' ? { width: (width - 45) / 2 } : undefined}
+                                >
+                                    {viewMode === 'list' ? (
+                                        <MedicationCard med={med} theme={theme} darkText={darkText} router={router} />
+                                    ) : (
+                                        <MedicationGridCard med={med} theme={theme} darkText={darkText} router={router} />
+                                    )}
+                                </Animated.View>
+                            ))}
+                        </View>
+                    )}
                 </ScrollView>
             </SafeAreaView>
 
@@ -383,6 +414,8 @@ function MedicationGridCard({ med, theme, darkText, router }) {
                 params: { medicine: JSON.stringify(med) }
             })}
         >
+            {/* Colored accent bar at top */}
+            <View style={[styles.gridAccentBar, { backgroundColor: med.color || theme.primary }]} />
             <View style={[styles.gridIconContainer, { backgroundColor: med.color + '15' }]}>
                 <Ionicons name={med.icon} size={32} color={med.color} />
             </View>
@@ -452,7 +485,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 15,
         height: 50,
-        borderRadius: 15,
+        borderRadius: 25,
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
@@ -643,17 +676,57 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingBottom: 100,
     },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 40,
+    },
+    emptyIconCircle: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: 24,
+    },
+    emptyBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 24,
+        gap: 6,
+    },
+    emptyBtnText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
     gridRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
     },
     gridCard: {
-        width: (width - 45) / 2,
+        width: '100%',
         padding: 15,
-        borderRadius: 25,
+        paddingTop: 20,
+        borderRadius: 24,
         marginBottom: 15,
         alignItems: 'center',
+        overflow: 'hidden',
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
@@ -665,6 +738,15 @@ const styles = StyleSheet.create({
                 elevation: 3,
             },
         }),
+    },
+    gridAccentBar: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 4,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
     },
     gridIconContainer: {
         width: 64,
