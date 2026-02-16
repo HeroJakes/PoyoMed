@@ -35,9 +35,9 @@ PoyoMed is built to directly address three critical global challenges:
 
 ### 2. 🤖 Advanced AI Intelligence (Powered by Gemini)
 - **Smart Scanner**: Contextual extraction of generic names, dosages, and intelligent expiry date prediction.
-- **AI Interaction Guard**: Proactively checks new scans against active medications to warn of dangerous interactions.
+- **AI Interaction Guard**: Proactively checks new scans against active medications. Features a **Safety Confirmation Flow** for high-risk interactions, ensuring users are fully informed before adding potentially conflicting drugs.
 - **Jargon Decoder**: Simplifies complex medical instructions into clear safety tips.
-- **Self-Correction**: Automatically corrects spelling errors in scanned medicine names.
+- **Pharma-Aware Correction**: Automatically corrects spelling errors in scanned medicine names by cross-referencing a professional pharmaceutical knowledge base (e.g., recognizing "claynase" as "Clarinase").
 
 ### 3. 🏥 Holistic Health Management
 - **Smart Schedule**: Real-time dose tracking and "Daily Health Tips" to boost wellness.
