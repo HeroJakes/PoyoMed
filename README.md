@@ -54,6 +54,37 @@ We utilized a "Cause-and-Effect" approach to integrate Google's powerful ecosyst
 
 ---
 
+## 🏗️ System Architecture
+PoyoMed follows a **modular multi-tier architecture** designed for high scalability, real-time safety, and seamless AI integration.
+
+```mermaid
+graph TD
+    subgraph "UI Layer (React Native / Expo)"
+        A[Screens: app/] --> B[Hooks: useMedicineForm]
+        A --> C[Atomic Components: components/]
+    end
+
+    subgraph "Logic Layer (Services & Utils)"
+        B --> D[Medicine Service]
+        B --> E[Auth Service]
+        D --> F[AI Service]
+        D --> G[Risk & Notification Utils]
+    end
+
+    subgraph "Data & AI Layer (Cloud)"
+        E --> H[(Firebase Auth)]
+        D --> I[(Firestore DB)]
+        F --> J{Google Gemini 1.5}
+        A --> K{Google Maps API}
+    end
+
+    style J fill:#4285F4,stroke:#333,stroke-width:2px,color:#fff
+    style H fill:#FFCA28,stroke:#333,stroke-width:2px,color:#000
+    style I fill:#FFCA28,stroke:#333,stroke-width:2px,color:#000
+```
+
+---
+
 ## 📂 Repository Roadmap
 - `app/`: View layer - modular screens for every core feature.
 - `services/`: AI & External API communication layers (contains Interaction Logic).
