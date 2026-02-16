@@ -1,16 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { arrayUnion, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../constants/theme';
-import { auth, db } from '../firebase';
+import { auth } from '../firebase';
 import { useColorScheme } from '../hooks/use-color-scheme';
-
+import { medicineService } from '../services/medicineService';
 import { getNextDose, isExpired } from '../utils/medicineUtils';
-import { cancelMedicationReminders } from '../utils/notificationUtils';
 import { getRiskMetadata } from '../utils/riskClassification';
 
 const { width } = Dimensions.get('window');
@@ -29,10 +27,9 @@ export default function MedicineDetails() {
         const user = auth.currentUser;
         if (!user) return;
 
-        const unsub = onSnapshot(doc(db, 'users', user.uid, 'medicines', medicine.id), (doc) => {
-            if (doc.exists()) {
-                setMedicine({ id: doc.id, ...doc.data() });
-            }
+        const unsub = medicineService.subscribeToMedicines(user.uid, (meds) => {
+            const found = meds.find(m => m.id === medicine.id);
+            if (found) setMedicine(found);
         });
 
         return () => unsub();
@@ -50,10 +47,7 @@ export default function MedicineDetails() {
                     style: "destructive",
                     onPress: async () => {
                         try {
-                            const user = auth.currentUser;
-                            if (!user) return;
-                            await cancelMedicationReminders(medicine.id);
-                            await deleteDoc(doc(db, 'users', user.uid, 'medicines', medicine.id));
+                            await medicineService.deleteMedicine(medicine.id);
                             Alert.alert("Success", "Medicine deleted successfully", [
                                 { text: "OK", onPress: () => router.replace('/(tabs)/medicines') }
                             ]);
@@ -161,7 +155,7 @@ export default function MedicineDetails() {
                         </View>
                     </View>
 
-                    {/* Info Cards */}
+
                     <View style={styles.infoGrid}>
                         <InfoCard
                             label="Dose"
@@ -189,7 +183,6 @@ export default function MedicineDetails() {
                         />
                     </View>
 
-                    {/* Reminders Section */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Reminders</Text>
                         <View style={[styles.reminderCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
@@ -210,7 +203,6 @@ export default function MedicineDetails() {
                         </View>
                     </View>
 
-                    {/* Usage Instructions Section */}
                     {medicine.instructions && (
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
@@ -227,7 +219,6 @@ export default function MedicineDetails() {
                         </View>
                     )}
 
-                    {/* Expiry Status Section */}
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: theme.text }]}>Expiry Status</Text>
                         <View style={[styles.reminderCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
@@ -248,7 +239,6 @@ export default function MedicineDetails() {
                         </View>
                     </View>
 
-                    {/* Risk Level & Disposal Section */}
                     {medicine.riskLevel && (
                         <View style={styles.section}>
                             <Text style={[styles.sectionTitle, { color: theme.text }]}>Safety & Disposal</Text>
@@ -283,7 +273,6 @@ export default function MedicineDetails() {
                             </View>
                         </View>
                     )}
-                    {/* Action Button */}
                     {(() => {
                         const nextDoseTime = getNextDose(medicine.times);
                         const today = new Date().toISOString().split('T')[0];
@@ -307,13 +296,7 @@ export default function MedicineDetails() {
                                     style={[styles.takeBtn, { backgroundColor: theme.danger }]}
                                     onPress={async () => {
                                         try {
-                                            const user = auth.currentUser;
-                                            if (!user) return;
-                                            await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
-                                                status: 'In Bag',
-                                                recycledAt: new Date().toISOString()
-                                            });
-                                            await cancelMedicationReminders(medicine.id);
+                                            await medicineService.recycleMedicine(medicine.id);
                                             Alert.alert("Success", "Medicine added to recycling bag!");
                                         } catch (error) {
                                             console.error("Error recycling:", error);
@@ -333,19 +316,7 @@ export default function MedicineDetails() {
                                     disabled={isTaken}
                                     onPress={async () => {
                                         try {
-                                            const user = auth.currentUser;
-                                            if (!user) return;
-
-                                            let takenEntry = new Date().toISOString();
-
-                                            if (nextDoseTime !== 'No more doses today' && nextDoseTime !== 'No doses scheduled') {
-                                                takenEntry = `${today} ${nextDoseTime}`;
-                                            }
-
-                                            await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
-                                                takenHistory: arrayUnion(takenEntry)
-                                            });
-
+                                            await medicineService.markAsTaken(medicine.id, nextDoseTime);
                                             Alert.alert("Success", "Medicine marked as taken!");
                                         } catch (error) {
                                             console.error("Error marking as taken:", error);
@@ -369,13 +340,7 @@ export default function MedicineDetails() {
                                                     text: "Add to Bag",
                                                     onPress: async () => {
                                                         try {
-                                                            const user = auth.currentUser;
-                                                            if (!user) return;
-                                                            await updateDoc(doc(db, 'users', user.uid, 'medicines', medicine.id), {
-                                                                status: 'In Bag',
-                                                                recycledAt: new Date().toISOString()
-                                                            });
-                                                            await cancelMedicationReminders(medicine.id);
+                                                            await medicineService.recycleMedicine(medicine.id);
                                                             Alert.alert("Success", "Added to recycling bag!");
                                                         } catch (error) {
                                                             console.error("Error recycling:", error);

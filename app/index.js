@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
-// PoyoMed Refined Theme (Warm Orange & Beige)
+
 const THEME = {
     primary: '#FF8A50', // Soft vibrant orange
     primaryDark: '#F4511E', // Darker orange for gradients/shadows
@@ -28,7 +28,6 @@ const THEME = {
     textLight: '#78909C', // Light Blue-Grey
 };
 
-// Orbit Component
 const OrbitIcon = ({ icon, color, size = 50, radius = 100, duration = 10000, initialAngle = 0 }) => {
     const angle = useSharedValue(initialAngle);
 
@@ -68,7 +67,6 @@ export default function OnboardingScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Background Gradient - Warm Beige */}
             <LinearGradient
                 colors={['#FFF8E1', '#FFF3E0', '#FFFFFF']}
                 style={StyleSheet.absoluteFill}
@@ -79,7 +77,6 @@ export default function OnboardingScreen() {
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.contentContainer}>
 
-                    {/* Top Header Row */}
                     <View style={styles.headerRow}>
                         {/* Logo Pill */}
                         <Animated.View entering={FadeInDown.duration(600)} style={styles.logoPill}>
@@ -91,11 +88,10 @@ export default function OnboardingScreen() {
 
                         {/* Top Right Icon (from reference) */}
                         <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.topRightIcon}>
-                            <Ionicons name="stethoscope" size={20} color="#5D4037" />
+                            <Ionicons name="fitness" size={20} color="#5D4037" />
                         </Animated.View>
                     </View>
 
-                    {/* Central Orbit Animation */}
                     <View style={styles.orbitContainer}>
                         {/* Center Planet - Large Orange Squircle with Pill */}
                         <Animated.View entering={FadeIn.delay(300).duration(800)} style={styles.centerPlanet}>
@@ -117,7 +113,6 @@ export default function OnboardingScreen() {
                         <OrbitIcon icon="bandage" color="#42A5F5" radius={120} duration={14000} initialAngle={80} />
                     </View>
 
-                    {/* Bottom Content */}
                     <View style={styles.bottomSection}>
                         <Animated.View entering={FadeInUp.delay(500).duration(600)}>
                             <Text style={styles.heroTitle}>Manage meds,{'\n'}save the planet</Text>
@@ -126,7 +121,6 @@ export default function OnboardingScreen() {
                             </Text>
                         </Animated.View>
 
-                        {/* Feature Chips */}
                         <Animated.View entering={FadeInUp.delay(700).duration(600)} style={styles.chipsContainer}>
                             <View style={styles.chipRow}>
                                 <View style={styles.chip}>
@@ -144,7 +138,6 @@ export default function OnboardingScreen() {
                             </View>
                         </Animated.View>
 
-                        {/* Buttons */}
                         <Animated.View entering={FadeInUp.delay(900).duration(600)} style={styles.actionContainer}>
                             <TouchableOpacity
                                 style={[styles.primaryBtn, { backgroundColor: '#FF7043' }]} // Vibrant Orange

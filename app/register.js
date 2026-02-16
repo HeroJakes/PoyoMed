@@ -1,12 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
     Alert,
-    Dimensions,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -30,10 +27,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../constants/theme';
-import { auth, db } from '../firebase';
 import { useColorScheme } from '../hooks/use-color-scheme';
-
-const { width, height } = Dimensions.get('window');
+import { authService } from '../services/authService';
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -49,7 +44,6 @@ export default function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Button pulse animation
     const btnScale = useSharedValue(1);
 
     useEffect(() => {
@@ -80,30 +74,12 @@ export default function RegisterScreen() {
 
         setIsLoading(true);
         try {
-            // 1. Create user in Firebase Auth
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // 2. Save user data to Firestore
-            await setDoc(doc(db, 'users', user.uid), {
-                uid: user.uid,
-                name: name,
-                email: email,
-                createdAt: new Date().toISOString(),
-            });
-
+            await authService.register(email, password, name);
             Alert.alert('Success', 'Account created successfully!');
             router.replace('/(tabs)');
         } catch (error) {
-            let errorMessage = 'An unexpected error occurred.';
-            if (error.code === 'auth/email-already-in-use') {
-                errorMessage = 'This email is already in use.';
-            } else if (error.code === 'auth/invalid-email') {
-                errorMessage = 'Please enter a valid email address.';
-            } else if (error.code === 'auth/weak-password') {
-                errorMessage = 'The password is too weak.';
-            }
-            Alert.alert('Registration Failed', errorMessage);
+            console.error(error);
+            Alert.alert('Registration Failed', error.message);
         } finally {
             setIsLoading(false);
         }
@@ -115,7 +91,6 @@ export default function RegisterScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Gradient Top Section */}
             <LinearGradient
                 colors={gradients.warm}
                 style={styles.topSection}
@@ -123,7 +98,6 @@ export default function RegisterScreen() {
                 end={{ x: 1, y: 1 }}
             >
                 <SafeAreaView>
-                    {/* Back Button */}
                     <Animated.View entering={FadeIn.duration(400)}>
                         <TouchableOpacity
                             style={styles.backBtn}
@@ -135,7 +109,6 @@ export default function RegisterScreen() {
                         </TouchableOpacity>
                     </Animated.View>
 
-                    {/* Logo + Title */}
                     <Animated.View
                         entering={FadeIn.duration(600).easing(Easing.out(Easing.exp))}
                         style={styles.topContent}
@@ -153,7 +126,6 @@ export default function RegisterScreen() {
                 </SafeAreaView>
             </LinearGradient>
 
-            {/* White Card Bottom */}
             <Animated.View
                 entering={FadeInUp.delay(200).duration(500).easing(Easing.out(Easing.exp))}
                 style={[styles.bottomCard, { backgroundColor: theme.background }]}
@@ -316,7 +288,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    /* ── Top gradient section ── */
     topSection: {
         paddingBottom: 50,
         paddingHorizontal: 24,
@@ -359,7 +330,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
     },
-    /* ── White card bottom ── */
     bottomCard: {
         flex: 1,
         marginTop: -30,

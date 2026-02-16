@@ -4,24 +4,25 @@ import { getReactNativePersistence, initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 
-// Your web app's Firebase configuration
+
 const firebaseConfig = {
-    apiKey: "AIzaSyCqGxi8rQF0u-NT9bbCP47LZGeVInKPK-4",
-    authDomain: "poyomed-8638f.firebaseapp.com",
-    projectId: "poyomed-8638f",
-    storageBucket: "poyomed-8638f.firebasestorage.app",
-    messagingSenderId: "464711032174",
-    appId: "1:464711032174:web:1cbac7340f228f51a3b57f",
+    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
+if (!firebaseConfig.apiKey) {
+    console.warn("Firebase configuration missing. Check .env");
+}
+
 const app = initializeApp(firebaseConfig);
 
-// ✅ Initialize Auth with Persistence
 export const auth = initializeAuth(app, {
     persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 });
 
-// ✅ Initialize Firestore
 export const db = getFirestore(app);
 

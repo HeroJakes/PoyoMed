@@ -1,105 +1,70 @@
 # PoyoMed 🌿💊
 > **The Sustainable Medication Assistant: Saving Lives, One Recycled Dose at a Time.**
 
-PoyoMed is a re-architected medication management ecosystem that puts **environmental sustainability** at its core. By leveraging **Gemini AI**, PoyoMed helps users manage their health safely while providing a frictionless, "Recycle-First" path to minimize hazardous pharmaceutical waste.
+---
+
+### 🚨 QUICK START GUIDE
+To run the prototype for evaluation, please follow these steps:
+1. **Duplicate** `.env.example` and rename the copy to `.env`.
+2. **Add your API Keys**:
+   - `EXPO_PUBLIC_GEMINI_API_KEY`: Get one at [Google AI Studio](https://aistudio.google.com/).
+   - `EXPO_PUBLIC_FIREBASE_*`: Create a project in [Firebase Console](https://console.firebase.google.com/), enable Firestore and Auth, and copy the config.
+3. Run `npm install` and `npx expo start`.
+4. Scan the QR code with **Expo Go** (Android) or the Camera app (iOS).
 
 ---
 
-## 🌍 The Mission
+## 🌎 The Mission
 To transform how humanity interacts with medication—shifting from a "consume and discard" cycle to a circular economy of responsible health management and environmental protection.
 
-### ❓ The Problem
-Every year, billions of dollars worth of medicine go to waste, often ending up flushed down toilets or thrown in landfills. This not only represents a massive health risk but also causes severe environmental damage, as active pharmaceutical ingredients (APIs) contaminate our water systems and soil, harming ecosystems and public health.
-
-### 🎯 SDG Alignment
-- **SDG 3: Good Health and Well-being**: Ensuring users take medication safely and are warned of dangerous interactions.
-- **SDG 12: Responsible Consumption and Production**: Promoting the circular economy by facilitating medicine recycling and reducing hazardous waste.
-- **SDG 14: Life Below Water**: Preventing pharmaceutical contamination of water bodies.
+### 🎯 SDG Alignment (United Nations Sustainable Development Goals)
+PoyoMed is built to directly address three critical global challenges:
+- **SDG 3: Good Health and Well-being**: Our **AI Interaction Guard** and **Smart Schedule** ensure users take medication safely, preventing dangerous drug interactions and dosage errors.
+- **SDG 12: Responsible Consumption and Production**: We tackle the billions of dollars in medical waste by facilitating a frictionless path to recycling and proper disposal.
+- **SDG 14: Life Below Water**: By keeping pharmaceuticals out of landfills and toilets, we prevent active ingredients from contaminating water systems and harming aquatic life.
 
 ---
 
 ## 🛠️ Core Pillars
 
 ### 1. ♻️ "Recycle-First" Ecosystem
-PoyoMed is primary-focused on medical waste reduction.
-- **Eco-Impact Dashboard**: Your home screen! Visualize your contribution with metrics like **Meds Saved** and **CO2 Reduction**.
-- **Smart Drop-off Bag**: A dedicated digital/physical workflow for items ready for disposal.
+- **Eco-Impact Dashboard**: Visualize your contribution with metrics like **Meds Saved** and **CO2 Reduction**.
+- **Smart Drop-off Bag**: A dedicated workflow for items ready for disposal.
 - **Request Pick-up**: Seamlessly schedule a home collection for your recycling bag.
 - **Point Locator**: Map-integrated finder for certified pharmacy collection boxes.
 
-### 2. 🤖 Advanced AI Intelligence (Gemini 2.0)
-Our AI doesn't just scan; it understands, protects, and simplifies.
+### 2. 🤖 Advanced AI Intelligence (Powered by Gemini)
 - **Smart Scanner**: Contextual extraction of generic names, dosages, and intelligent expiry date prediction.
-- **AI Interaction Guard**: Proactively checks new scans against your active medications to warn of dangerous drug-drug interactions.
-- **Jargon Decoder**: Simplifies complex medical instructions into clear, actionable tips for safe usage.
-- **Spelling Normalization**: Automatically corrects medicine name errors from low-quality scans.
-- **Confidence Scoring**: Self-evaluates scan quality and warns users if data verification is required due to low visibility.
+- **AI Interaction Guard**: Proactively checks new scans against active medications to warn of dangerous interactions.
+- **Jargon Decoder**: Simplifies complex medical instructions into clear safety tips.
+- **Self-Correction**: Automatically corrects spelling errors in scanned medicine names.
 
 ### 3. 🏥 Holistic Health Management
 - **Smart Schedule**: Real-time dose tracking and "Daily Health Tips" to boost wellness.
-- **Inventory Control**: Automated "Low Stock" and "Expiring" alerts that help you transition items to recycling before they become waste.
-- **Medication Archive**: A full audit log of your health journey.
-
-### 4. ⚠️ Safety & Risk Classification
-- **Risk Mapping**: Categorizes meds as **Low**, **Medium**, or **High** risk based on therapeutic class.
-- **Safety Badges**: Consistent visual indicators across the entire UI.
-- **Disposal Intelligence**: Tailored disposal methods generated by AI based on medicine type.
+- **Inventory Control**: Automated "Low Stock" and "Expiring" alerts to help you recycle before it's too late.
 
 ---
 
-## 🎨 Design Philosophy: "Poyo Warmth"
-PoyoMed features a unique design system called **Warmth**:
-- **Palette**: Soft Cream (#FFFBF7), Warm Orange (#FF8C42), and Nature Green (#82C91E).
-- **Glassmorphism**: Modern frosted-glass card effects for a premium feel.
-- **Adaptive UI**: Seamless transition between Light and Dark modes.
-- **Micro-animations**: Powered by **Reanimated** for an organic, responsive user experience.
-
----
-
-## ⚙️ Google Technology Utilization
+## ⚙️ Google Technology Integration
 We utilized a "Cause-and-Effect" approach to integrate Google's powerful ecosystem:
 
-- **Google Gemini 2.5 Flash**: We used Gemini's latest multimodal capabilities to analyze medicine labels in real-time. This **allowed our system to provide instant, contextual extraction** of complex medical data (dosage, expiry, risk). We also enforced **Strict JSON Output Mode** to ensure 100% deterministic data parsing, eliminating AI "chatter" and system crashes.
-- **Firebase Firestore**: We implemented Firestore for real-time data synchronization. This **enabled seamless state management** between the AI analysis and the user's dashboard, ensuring that safety alerts (like Low Stock or Expiring meds) are delivered immediately across all devices.
-- **Google Maps (Native Linking)**: We integrated location services to connect users with drop-off points. This **simplified the recycling path**, making it as easy for a user to recycle medicine as it is to find a nearby pharmacy, directly increasing the likelihood of responsible disposal.
-
----
-
-## � Getting Started
-
-### Prerequisites
-- Node.js (v18+)
-- Expo Go (Mobile) or Android/iOS Emulator
-- A Google AI (Gemini) API Key
-
-### Setup
-1. **Clone & Install**:
-   ```bash
-   git clone https://github.com/HeroJakes/PoyoMed.git
-   npm install
-   ```
-2. **Environment Configuration**:
-   Create a `.env` file:
-   ```env
-   EXPO_PUBLIC_GEMINI_API_KEY=your_key_here
-   ```
-3. **Launch**:
-   ```bash
-   npx expo start
-   ```
+- **Google Gemini 1.5 Flash**: The brain of PoyoMed. We used Gemini's multimodal capabilities to analyze medicine labels in real-time. This **allowed our system to provide instant, contextual extraction** of complex medical data (dosage, expiry, risk).
+- **Firebase Firestore & Auth**: The backbone of our real-time synchronization. Firestore **enabled seamless state management** between AI analysis and the user's dashboard, ensuring safety alerts are delivered immediately.
+- **Google Maps (Native Integration)**: We integrated location services to connect users with drop-off points. This **simplified the recycling path**, directly increasing the likelihood of responsible disposal.
 
 ---
 
 ## 📂 Repository Roadmap
 - `app/`: View layer - modular screens for every core feature.
-- `services/`: AI & External API communication layers.
+- `services/`: AI & External API communication layers (contains Interaction Logic).
+- `hooks/`: Reusable logic for forms and state management.
 - `utils/`: Business logic, date calculations, and risk algorithms.
 - `constants/`: Global style tokens and configuration.
 - `components/`: Atomic UI components.
 
 ---
 
-## � License & Acknowledgments
-PoyoMed is a hackathon project by **HeroJakes**. Developed to showcase the potential of AI in sustainable healthcare.
+## 🌿 License & Acknowledgments
+Developed for **Kitahack 2026** to showcase the potential of Google AI in sustainable healthcare.
 
-<p align="center">🌿 <b>Let's heal the world, one dose at a time.</b> 💊</p>
+<p align="center"><b>Let's heal the world, one dose at a time.</b></p>

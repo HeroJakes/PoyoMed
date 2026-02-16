@@ -4,9 +4,12 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:dev": "npx expo start --dev-client",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "build:android": "eas build --profile development --platform android",
+    "build:ios": "eas build --profile development --platform ios",
     "web": "expo start --web",
     "lint": "expo lint"
   },

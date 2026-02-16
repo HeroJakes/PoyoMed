@@ -1,33 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { collection, doc, onSnapshot, query, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import {
-    Dimensions,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
-} from 'react-native';
-import Animated, {
-    Easing,
-    FadeInDown,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming
-} from 'react-native-reanimated';
+import { Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../../constants/theme';
-import { auth, db } from '../../firebase';
+import { auth } from '../../firebase';
 import { useColorScheme } from '../../hooks/use-color-scheme';
-
+import { medicineService } from '../../services/medicineService';
 import { getNextDose } from '../../utils/medicineUtils';
-import { cancelMedicationReminders } from '../../utils/notificationUtils';
 import { getRiskMetadata } from '../../utils/riskClassification';
 
 const { width, height } = Dimensions.get('window');
@@ -84,46 +66,13 @@ export default function Medicines() {
         const user = auth.currentUser;
         if (!user) return;
 
-        const medicinesRef = collection(db, 'users', user.uid, 'medicines');
-        let q = query(medicinesRef);
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const meds = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    id: doc.id,
-                    ...data,
-                    status: calculateStatus(data.expiryDate, data.status),
-                    nextDose: getNextDose(data.times)
-                };
-            });
-
-            // Auto-update expired meds to 'In Bag' in Firestore
-            meds.forEach(async (med) => {
-                if (med.expiryDate &&
-                    new Date(med.expiryDate) < new Date() &&
-                    med.status !== 'In Bag' &&
-                    med.status !== 'Recycled') {
-
-                    try {
-                        const medRef = doc(db, 'users', user.uid, 'medicines', med.id);
-                        await updateDoc(medRef, {
-                            status: 'In Bag',
-                            autoExpired: true,
-                            updatedAt: new Date().toISOString()
-                        });
-                        // Cancel reminders for this item
-                        await cancelMedicationReminders(med.id);
-                    } catch (err) {
-                        console.error("Error auto-expiring medicine:", err);
-                    }
-                }
-            });
-
-            setMedications(meds);
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching medicines:", error);
+        const unsubscribe = medicineService.subscribeToMedicines(user.uid, (meds) => {
+            const processedMeds = meds.map(med => ({
+                ...med,
+                status: calculateStatus(med.expiryDate, med.status),
+                nextDose: getNextDose(med.times)
+            }));
+            setMedications(processedMeds);
             setLoading(false);
         });
 
@@ -186,7 +135,6 @@ export default function Medicines() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Search Bar */}
                 <View style={styles.searchContainer}>
                     <View style={[styles.searchBar, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                         <Ionicons name="search-outline" size={20} color={theme.icon} style={styles.searchIcon} />
@@ -205,7 +153,6 @@ export default function Medicines() {
                     </View>
                 </View>
 
-                {/* Categories */}
                 <View>
                     <ScrollView
                         horizontal
@@ -234,7 +181,6 @@ export default function Medicines() {
                     </ScrollView>
                 </View>
 
-                {/* Medication List/Grid */}
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={viewMode === 'list' ? styles.listContent : styles.gridContent}>
                     {filteredMedications.length === 0 && !loading ? (
                         <Animated.View

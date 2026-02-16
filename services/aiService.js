@@ -1,43 +1,49 @@
-/**
- * Gemini AI Service (REST API Fallback)
- * 
- * We use the REST API directly via fetch to avoid versioning conflicts 
- * with the @google/generative-ai SDK in the Expo environment.
- */
 
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 if (!API_KEY) {
-    console.warn("⚠️ EXPO_PUBLIC_GEMINI_API_KEY is missing! Please check your .env file and restart the server.");
-} else {
-    console.log("✅ Gemini API Key loaded (starts with):", API_KEY.substring(0, 8));
+    console.warn("Gemini API Key missing! Check .env");
 }
 
-/**
- * Sends a prompt (and optional image data) to Gemini.
- * @param {string|Array} contents - A string prompt or an array of parts (text/image).
- * @param {boolean} isJsonMode - If true, enforces a strict JSON response.
- * @returns {Promise<string>} - The AI's response text.
- */
+async function fetchWithRetry(url, options, maxRetries = 3) {
+    let lastError;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(url, options);
+            if (response.ok) return response;
+
+            // If it's a 4xx error (except 429), don't retry
+            if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+            }
+
+            lastError = new Error(`HTTP ${response.status}`);
+        } catch (error) {
+            lastError = error;
+            if (i === maxRetries - 1) break;
+            const delay = Math.pow(2, i) * 1000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    throw lastError;
+}
+
 export async function askGemini(contents, isJsonMode = false) {
     if (!API_KEY) {
-        console.error("EXPO_PUBLIC_GEMINI_API_KEY is not defined in .env");
-        throw new Error("API Key is missing. Please check your .env file and restart the server.");
+        throw new Error("API Key is missing. Please check your .env file.");
     }
 
     const url = `${BASE_URL}?key=${API_KEY}`;
-
-    // Format the contents for the REST API
     let formattedContents = [];
 
+    // Basic sanitization and formatting
     if (Array.isArray(contents)) {
-        // Handle array of parts (text + image) from camera.js
         const parts = contents.map(part => {
             if (typeof part === 'string') {
-                return { text: part };
+                return { text: part.trim() };
             } else if (part.inlineData) {
-                // Convert SDK format to REST API format
                 return {
                     inline_data: {
                         mime_type: part.inlineData.mimeType,
@@ -49,54 +55,35 @@ export async function askGemini(contents, isJsonMode = false) {
         });
         formattedContents = [{ role: 'user', parts }];
     } else {
-        // Handle simple string prompt
-        formattedContents = [{ role: 'user', parts: [{ text: contents }] }];
+        formattedContents = [{ role: 'user', parts: [{ text: String(contents).trim() }] }];
     }
 
     const body = {
-        contents: formattedContents
+        contents: formattedContents,
+        generationConfig: isJsonMode ? { response_mime_type: "application/json" } : {}
     };
 
-    if (isJsonMode) {
-        body.generationConfig = {
-            response_mime_type: "application/json"
-        };
-    }
-
     try {
-        const response = await fetch(url, {
+        const response = await fetchWithRetry(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error("❌ Gemini API Error Response:", JSON.stringify(errorData, null, 2));
-            throw new Error(errorData.error?.message || "Failed to connect to Gemini API");
-        }
-
         const data = await response.json();
 
-        if (!data.candidates || data.candidates.length === 0) {
-            console.error("❌ No candidates in Gemini response:", data);
-            throw new Error("No response candidates returned from Gemini");
+        if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            console.error("❌ Invalid Gemini response structure:", data);
+            throw new Error("Received an empty or invalid response from Gemini.");
         }
 
         return data.candidates[0].content.parts[0].text;
     } catch (error) {
-        console.error("❌ Gemini Service Error:", error);
+        console.error("❌ Gemini Service Error:", error.message);
         throw error;
     }
 }
 
-/**
- * Checks for potential drug interactions between a new medicine and existing active medicines.
- * @param {string} newMedName - Name of the new medicine.
- * @param {string} newMedDosage - Dosage of the new medicine.
- * @param {Array<string>} existingMedNames - Array of existing active medicine names.
- * @returns {Promise<Object>} - JSON object with interaction details.
- */
 export async function checkDrugInteractions(newMedName, newMedDosage, existingMedNames) {
     if (!existingMedNames || existingMedNames.length === 0) {
         return { hasInteraction: false };
@@ -124,12 +111,6 @@ IMPORTANT: If no significant interaction is found, return {"hasInteraction": fal
     }
 }
 
-/**
- * Simplifies medical jargon or provides general usage tips for a medicine.
- * @param {string} medName - Name of the medicine.
- * @param {string} currentInstructions - Existing jargon or instructions (optional).
- * @returns {Promise<string>} - Simplified instructions or safety tips.
- */
 export async function getMedicineTips(medName, currentInstructions = "") {
     const prompt = currentInstructions
         ? `Act as a helpful pharmacist. Simplify these medical instructions for a patient. Use plain, friendly English.

@@ -1,8 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
     Alert,
@@ -30,8 +28,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../constants/theme';
-import { auth, db } from '../firebase';
 import { useColorScheme } from '../hooks/use-color-scheme';
+import { authService } from '../services/authService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -49,7 +47,7 @@ export default function LoginScreen() {
     const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Button pulse animation
+
     const btnScale = useSharedValue(1);
 
     useEffect(() => {
@@ -75,31 +73,11 @@ export default function LoginScreen() {
 
         setIsLoading(true);
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // Check if user exists in Firestore, if not add them (sync safety)
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            if (!userDoc.exists()) {
-                await setDoc(doc(db, 'users', user.uid), {
-                    uid: user.uid,
-                    email: user.email,
-                    name: user.displayName || 'User',
-                    createdAt: new Date().toISOString(),
-                });
-            }
-
+            await authService.login(email, password);
             router.replace('/(tabs)');
         } catch (error) {
-            let errorMessage = 'An unexpected error occurred.';
-            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                errorMessage = 'Invalid email or password.';
-            } else if (error.code === 'auth/invalid-email') {
-                errorMessage = 'Please enter a valid email address.';
-            } else {
-                errorMessage = `Error: ${error.message} (${error.code})`;
-            }
-            Alert.alert('Login Failed', errorMessage);
+            console.error(error);
+            Alert.alert('Login Failed', error.message);
         } finally {
             setIsLoading(false);
         }
@@ -111,7 +89,6 @@ export default function LoginScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Gradient Top Section */}
             <LinearGradient
                 colors={gradients.warm}
                 style={styles.topSection}
@@ -119,7 +96,6 @@ export default function LoginScreen() {
                 end={{ x: 1, y: 1 }}
             >
                 <SafeAreaView>
-                    {/* Back Button */}
                     <Animated.View entering={FadeIn.duration(400)}>
                         <TouchableOpacity
                             style={styles.backBtn}
@@ -131,7 +107,6 @@ export default function LoginScreen() {
                         </TouchableOpacity>
                     </Animated.View>
 
-                    {/* Logo + Title */}
                     <Animated.View
                         entering={FadeIn.duration(600).easing(Easing.out(Easing.exp))}
                         style={styles.topContent}
@@ -150,7 +125,6 @@ export default function LoginScreen() {
                 </SafeAreaView>
             </LinearGradient>
 
-            {/* White Card Bottom */}
             <Animated.View
                 entering={FadeInUp.delay(200).duration(500).easing(Easing.out(Easing.exp))}
                 style={[styles.bottomCard, { backgroundColor: theme.background }]}
@@ -257,7 +231,6 @@ export default function LoginScreen() {
                             </AnimatedTouchable>
                         </Animated.View>
 
-                        {/* Social Login Divider */}
                         <Animated.View
                             entering={FadeInDown.delay(750).duration(400).easing(Easing.out(Easing.exp))}
                             style={styles.dividerRow}
@@ -292,7 +265,6 @@ export default function LoginScreen() {
                             </TouchableOpacity>
                         </Animated.View>
 
-                        {/* Footer */}
                         <Animated.View
                             entering={FadeInDown.delay(950).duration(400).easing(Easing.out(Easing.exp))}
                             style={styles.footer}
@@ -313,7 +285,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    /* ── Top gradient section ── */
     topSection: {
         paddingBottom: 50,
         paddingHorizontal: 24,
@@ -355,7 +326,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
     },
-    /* ── White card bottom ── */
     bottomCard: {
         flex: 1,
         marginTop: -30,

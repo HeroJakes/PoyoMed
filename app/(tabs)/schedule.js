@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { collection, onSnapshot, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
   Alert,
@@ -19,8 +18,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../../constants/theme';
-import { auth, db } from '../../firebase';
+import { auth } from '../../firebase';
 import { useColorScheme } from '../../hooks/use-color-scheme';
+import { medicineService } from '../../services/medicineService';
 import { getNextDose, isExpired, isNextDoseToday } from '../../utils/medicineUtils';
 import { getRiskMetadata } from '../../utils/riskClassification';
 
@@ -36,77 +36,52 @@ export default function ScheduleScreen() {
   const [expiringMedicines, setExpiringMedicines] = useState([]);
   const [loading, setLoading] = useState(true);
 
-
   // Fetch Medicines and Filter
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
 
-    const medicinesRef = collection(db, 'users', user.uid, 'medicines');
-    const q = query(medicinesRef);
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const meds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+    const unsubscribe = medicineService.subscribeToMedicines(user.uid, (meds) => {
       // Filter for Today's Schedule
       const todayMeds = meds.filter(med => {
-        if (med.status === 'In Bag' || med.status === 'Recycled' || med.status === 'Pending Pickup') return false;
+        if (med.status !== 'Active') return false;
         if (med.frequency !== 'Daily') return false;
         if (isExpired(med.expiryDate)) return false;
-
-        // Check if next dose is today
         if (!isNextDoseToday(med.times)) return false;
 
-        // Check if THIS specific dose has been taken
         const nextDose = getNextDose(med.times);
-        if (nextDose === 'No more doses today' || nextDose === 'No doses scheduled') return false;
+        if (nextDose === '--' || nextDose === 'No more doses today') return false;
 
         const todayStr = new Date().toISOString().split('T')[0];
         const expectedTakenEntry = `${todayStr} ${nextDose}`;
-
-        if (med.takenHistory && med.takenHistory.includes(expectedTakenEntry)) {
-          return false; // Already taken
-        }
+        if (med.takenHistory && med.takenHistory.includes(expectedTakenEntry)) return false;
 
         return true;
       }).sort((a, b) => {
-        const timeA = getNextDose(a.times);
-        const timeB = getNextDose(b.times);
-
-        // Helper to convert time string (e.g., "08:00 AM") to minutes
         const toMinutes = (timeStr) => {
-          if (!timeStr) return 0;
-          const [time, modifier] = timeStr.split(' ');
-          let [hours, minutes] = time.split(':');
-          hours = parseInt(hours, 10);
-          minutes = parseInt(minutes, 10);
-          if (modifier === 'PM' && hours < 12) hours += 12;
-          if (modifier === 'AM' && hours === 12) hours = 0;
-          return hours * 60 + minutes;
+          if (!timeStr || timeStr === '--') return 0;
+          const match = timeStr.match(/(\d+):(\d+)\s*([AP]M)/i);
+          if (!match) return 0;
+          let [_, h, m, mod] = match;
+          h = parseInt(h);
+          if (mod.toUpperCase() === 'PM' && h < 12) h += 12;
+          if (mod.toUpperCase() === 'AM' && h === 12) h = 0;
+          return h * 60 + parseInt(m);
         };
-
-        return toMinutes(timeA) - toMinutes(timeB);
+        return toMinutes(getNextDose(a.times)) - toMinutes(getNextDose(b.times));
       });
       setTodaysMedicines(todayMeds);
 
-      // Filter for Expiring Soon (<= 7 days)
+      // Filter for Expiring Soon
       const expiring = meds.filter(med => {
-        if (med.status === 'In Bag' || med.status === 'Recycled' || med.status === 'Pending Pickup') return false;
+        if (med.status !== 'Active') return false;
         if (!med.expiryDate) return false;
-        const today = new Date();
-        const expiry = new Date(med.expiryDate);
-        const diffTime = expiry - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const diffDays = Math.ceil((new Date(med.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
         return diffDays <= 7 && diffDays >= 0;
-      }).map(med => {
-        const today = new Date();
-        const expiry = new Date(med.expiryDate);
-        const diffTime = expiry - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return { ...med, daysLeft: diffDays };
-      });
-      setExpiringMedicines(expiring);
-
+      }).map(med => ({
+        ...med,
+        daysLeft: Math.ceil((new Date(med.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+      }));
       setExpiringMedicines(expiring);
       setLoading(false);
     });
@@ -147,7 +122,6 @@ export default function ScheduleScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Header Section */}
           <Animated.View
             entering={FadeInDown.duration(500).easing(Easing.out(Easing.exp))}
             style={styles.header}
@@ -158,7 +132,6 @@ export default function ScheduleScreen() {
             </View>
           </Animated.View>
 
-          {/* Featured Insight Card */}
           <Animated.View
             entering={FadeInDown.delay(150).duration(500).easing(Easing.out(Easing.exp))}
           >
@@ -184,7 +157,6 @@ export default function ScheduleScreen() {
             </LinearGradient>
           </Animated.View>
 
-          {/* Horizontal Section - Today's Reminders */}
           <Animated.View
             entering={FadeInDown.delay(300).duration(500).easing(Easing.out(Easing.exp))}
           >
@@ -219,7 +191,6 @@ export default function ScheduleScreen() {
             </ScrollView>
           </Animated.View>
 
-          {/* Expiring Soon Section */}
           <Animated.View
             entering={FadeInDown.delay(450).duration(500).easing(Easing.out(Easing.exp))}
           >
@@ -252,7 +223,6 @@ export default function ScheduleScreen() {
             </View>
           </Animated.View>
 
-          {/* Quick Stats */}
           <Animated.View
             entering={FadeInDown.delay(600).duration(500).easing(Easing.out(Easing.exp))}
             style={styles.statsRow}

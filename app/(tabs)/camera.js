@@ -131,7 +131,7 @@ export default function CameraScreen() {
             const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions, category, confidenceScore.
 
 Logic for extraction:
-- name: The brand or generic name of the medicine. Normalize and correct any obvious misspellings (e.g., if the text says "fver", return "Fever").
+- name: The brand or generic name of the medicine. Normalize and correct any obvious misspellings using your pharmaceutical knowledge base (e.g., if the text says "claynase", return "Clarinase"). Cross-reference blurry text with known medication names to provide the most accurate correction.
 - dosage: Look for phrases like 'Take [X] [unit]' (e.g., 'Take 1 pill' or 'Take 2 tablets'). Use the quantity and unit as the dosage.
 - frequency: One of 'Daily', 'Weekly', 'Monthly', 'As Needed'.
 - timesPerDay: Look for phrases like '[X] times daily', '[X] times a day', or '[X]x daily'. Return ONLY the number (e.g., 2).
@@ -213,7 +213,7 @@ If a field is not found, use an empty string (or 1 for timesPerDay, false for is
                 const prompt = `Extract medication information from this image. Return ONLY a JSON object with these keys: name, dosage, frequency, timesPerDay, expiry, isEstimated, instructions, category, confidenceScore.
 
 Logic for extraction:
-- name: The brand or generic name of the medicine. Normalize and correct any obvious misspellings (e.g., if the text says "fver", return "Fever").
+- name: The brand or generic name of the medicine. Normalize and correct any obvious misspellings using your pharmaceutical knowledge base (e.g., if the text says "claynase", return "Clarinase"). Cross-reference blurry text with known medication names to provide the most accurate correction.
 - dosage: Look for phrases like 'Take [X] [unit]' (e.g., 'Take 1 pill' or 'Take 2 tablets'). Use the quantity and unit as the dosage.
 - frequency: One of 'Daily', 'Weekly', 'Monthly', 'As Needed'.
 - timesPerDay: Look for phrases like '[X] times daily', '[X] times a day', or '[X]x daily'. Return ONLY the number (e.g., 2).
