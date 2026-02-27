@@ -6,9 +6,47 @@ import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, TouchableOpac
 export function BasicInfoSection({ form, ui, actions, theme }) {
     const [showExpiryPicker, setShowExpiryPicker] = React.useState(false);
 
+    // Confidence UI Logic
+    const confidence = ui.confidenceScore || 100;
+    const isLowConfidence = confidence < 80;
+
+    let confidenceColor = theme.success;
+    let confidenceLabel = 'High Accuracy';
+
+    if (confidence < 60) {
+        confidenceColor = theme.danger;
+        confidenceLabel = 'Low Accuracy';
+    } else if (confidence < 85) {
+        confidenceColor = theme.warning;
+        confidenceLabel = 'Medium Accuracy';
+    }
+
     return (
         <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Basic Information</Text>
+            <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.text, marginBottom: 0 }]}>Basic Information</Text>
+                {ui.confidenceScore !== undefined && (
+                    <View style={[styles.confidenceBadge, { backgroundColor: confidenceColor + '15', borderColor: confidenceColor + '30' }]}>
+                        <Ionicons
+                            name={isLowConfidence ? "alert-circle-outline" : "checkmark-shield-outline"}
+                            size={14}
+                            color={confidenceColor}
+                        />
+                        <Text style={[styles.confidenceText, { color: confidenceColor }]}>
+                            {confidence}% {confidenceLabel}
+                        </Text>
+                    </View>
+                )}
+            </View>
+
+            {isLowConfidence && (
+                <View style={[styles.warningBanner, { backgroundColor: theme.danger + '10', borderColor: theme.danger + '20' }]}>
+                    <Ionicons name="warning-outline" size={20} color={theme.danger} />
+                    <Text style={[styles.warningText, { color: theme.text }]}>
+                        AI is not entirely sure about these details. Please verify the name and dosage carefully.
+                    </Text>
+                </View>
+            )}
 
             <View style={[styles.inputContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
                 <Ionicons name="pencil-outline" size={20} color={theme.icon} style={styles.inputIcon} />
@@ -32,7 +70,14 @@ export function BasicInfoSection({ form, ui, actions, theme }) {
                 />
             </View>
 
-            <Text style={[styles.label, { color: theme.icon, marginTop: 10 }]}>Expiry Date</Text>
+            <View style={styles.expiryHeader}>
+                <Text style={[styles.label, { color: theme.icon }]}>Expiry Date</Text>
+                {ui.isEstimated && (
+                    <View style={[styles.estimateBadge, { backgroundColor: theme.warning + '15' }]}>
+                        <Text style={[styles.estimateText, { color: theme.warning }]}>Estimated</Text>
+                    </View>
+                )}
+            </View>
             <TouchableOpacity
                 onPress={() => setShowExpiryPicker(!showExpiryPicker)}
                 style={[styles.inputContainer, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
@@ -72,11 +117,61 @@ export function BasicInfoSection({ form, ui, actions, theme }) {
 
 const styles = StyleSheet.create({
     section: { marginBottom: 25 },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold' },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15
+    },
     inputContainer: { flexDirection: 'row', alignItems: 'center', height: 55, borderRadius: 12, paddingHorizontal: 15, marginBottom: 12 },
     inputIcon: { marginRight: 10 },
     input: { flex: 1, fontSize: 16 },
-    label: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 10 },
+    label: { fontSize: 14, fontWeight: '600' },
+    expiryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+        marginTop: 10
+    },
+    confidenceBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 20,
+        borderWidth: 1,
+        gap: 5,
+    },
+    confidenceText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    warningBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 15,
+        gap: 10,
+    },
+    warningText: {
+        flex: 1,
+        fontSize: 13,
+        lineHeight: 18,
+    },
+    estimateBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    estimateText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
     textArea: { borderRadius: 12, borderWidth: 1, padding: 15, height: 100, fontSize: 16, textAlignVertical: 'top' },
 });
+

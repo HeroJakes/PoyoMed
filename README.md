@@ -38,6 +38,8 @@ PoyoMed is built to directly address three critical global challenges:
 - **AI Interaction Guard**: Proactively checks new scans against active medications. Features a **Safety Confirmation Flow** for high-risk interactions, ensuring users are fully informed before adding potentially conflicting drugs.
 - **Jargon Decoder**: Simplifies complex medical instructions into clear safety tips.
 - **Pharma-Aware Correction**: Automatically corrects spelling errors in scanned medicine names by cross-referencing a professional pharmaceutical knowledge base (e.g., recognizing "claynase" as "Clarinase").
+- **AI Confidence & Safety Transparency**: Real-time accuracy metrics and safety warnings (e.g., "AI is not sure") when scan quality is low, ensuring a "Human-in-the-loop" verification process for critical health data.
+- **AI-Driven Risk Classification**: Automatically categorizes medications into Low, Medium, or High risk levels. This powers our **Safe Disposal Engine**, providing tailored instructions on whether an item can be binned or must be returned to a pharmacy.
 
 ### 3. 🏥 Holistic Health Management
 - **Smart Schedule**: Real-time dose tracking and "Daily Health Tips" to boost wellness.
@@ -50,7 +52,7 @@ We utilized a "Cause-and-Effect" approach to integrate Google's powerful ecosyst
 
 - **Google Gemini 1.5 Flash**: The brain of PoyoMed. We used Gemini's multimodal capabilities to analyze medicine labels in real-time. This **allowed our system to provide instant, contextual extraction** of complex medical data (dosage, expiry, risk).
 - **Firebase Firestore & Auth**: The backbone of our real-time synchronization. Firestore **enabled seamless state management** between AI analysis and the user's dashboard, ensuring safety alerts are delivered immediately.
-- **Google Maps (Native Integration)**: We integrated location services to connect users with drop-off points. This **simplified the recycling path**, directly increasing the likelihood of responsible disposal.
+- **Google Maps Integration**: We integrated location data to connect users with official drop-off points. This **simplified the recycling path**, directly increasing the likelihood of responsible disposal.
 
 ---
 
@@ -61,6 +63,24 @@ We utilized a "Cause-and-Effect" approach to integrate Google's powerful ecosyst
 - `utils/`: Business logic, date calculations, and risk algorithms.
 - `constants/`: Global style tokens and configuration.
 - `components/`: Atomic UI components.
+
+---
+
+## 🏗️ Technical Architecture
+PoyoMed is built on a modular, serverless architecture designed for real-time safety and global scalability:
+- **Presentation Layer**: React Native (Expo) for a seamless cross-platform mobile experience.
+- **AI Service Layer**: A dedicated coordination layer (`services/aiService.js`) that handles multimodal communication with **Google Gemini 1.5 Flash**.
+- **Backend-as-a-Service**: **Google Firebase (Firestore & Auth)** for secure user management and sub-second synchronization of health data.
+- **State Management**: Custom React Hooks for real-time data flow between the AI analysis engine and the user interface.
+
+## 🚀 Future Roadmap
+1. **E-Pharmacy Integration**: Direct refill requests via certified pharmacy partners based on tracked inventory levels.
+2. **Poyo-Rider Fleet**: A crowdsourced or partner-based pickup network for "Recycle-First" collection bags.
+3. **Advanced Interaction DB**: Expanding the AI's clinical knowledge base to include traditional and herbal medicine interactions.
+
+## 🧠 Challenges & Learnings
+- **The "Accuracy Gap"**: We discovered that hospital medicine labels often omit clear expiry dates. We overcame this by training our Gemini prompt logic to "infer" safety windows from dispense dates and local pharmaceutical standards.
+- **UX of Safety**: Initially, users found AI-generated instructions too technical. We solved this by implementing the **Jargon Decoder** to simplify clinical text into friendly, actionable advice.
 
 ---
 
