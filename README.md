@@ -67,11 +67,21 @@ We utilized a "Cause-and-Effect" approach to integrate Google's powerful ecosyst
 ---
 
 ## 🏗️ Technical Architecture
-PoyoMed is built on a modular, serverless architecture designed for real-time safety and global scalability:
-- **Presentation Layer**: React Native (Expo) for a seamless cross-platform mobile experience.
-- **AI Service Layer**: A dedicated coordination layer (`services/aiService.js`) that handles multimodal communication with **Google Gemini 1.5 Flash**.
-- **Backend-as-a-Service**: **Google Firebase (Firestore & Auth)** for secure user management and sub-second synchronization of health data.
-- **State Management**: Custom React Hooks for real-time data flow between the AI analysis engine and the user interface.
+PoyoMed is built on a modular, serverless architecture designed for real-time safety and global scalability. Our data flows seamlessly from scan to safety check:
+
+```text
+User Input (Medicine Label Photo & Text)
+           ↓
+Firebase Authentication (Secure User Session)
+           ↓
+Gemini 1.5 Flash API (Multimodal AI Extraction & Reasoning)
+           ↓
+AI Service Layer (Interaction Guard & Risk Classification)
+           ↓
+Firestore (Real-time DB Sync & Schedule Creation)
+           ↓
+React Native UI (Live Dashboard & Disposal Alerts)
+```
 
 ## 🚀 Future Roadmap
 1. **E-Pharmacy Integration**: Direct refill requests via certified pharmacy partners based on tracked inventory levels.
