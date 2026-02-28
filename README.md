@@ -50,7 +50,7 @@ PoyoMed is built to directly address three critical global challenges:
 ## ⚙️ Google Technology Integration
 We utilized a "Cause-and-Effect" approach to integrate Google's powerful ecosystem:
 
-- **Google Gemini 1.5 Flash**: The brain of PoyoMed. We used Gemini's multimodal capabilities to analyze medicine labels in real-time. This **allowed our system to provide instant, contextual extraction** of complex medical data (dosage, expiry, risk).
+- **Google Gemini 2.5 Flash**: The brain of PoyoMed. We used Gemini's multimodal capabilities to analyze medicine labels in real-time. This **allowed our system to provide instant, contextual extraction** of complex medical data (dosage, expiry, risk).
 - **Firebase Firestore & Auth**: The backbone of our real-time synchronization. Firestore **enabled seamless state management** between AI analysis and the user's dashboard, ensuring safety alerts are delivered immediately.
 - **Google Maps Integration**: We integrated location data to connect users with official drop-off points. This **simplified the recycling path**, directly increasing the likelihood of responsible disposal.
 
@@ -74,7 +74,7 @@ User Input (Medicine Label Photo & Text)
            ↓
 Firebase Authentication (Secure User Session)
            ↓
-Gemini 1.5 Flash API (Multimodal AI Extraction & Reasoning)
+Gemini 2.5 Flash API (Multimodal AI Extraction & Reasoning)
            ↓
 AI Service Layer (Interaction Guard & Risk Classification)
            ↓
@@ -84,9 +84,9 @@ React Native UI (Live Dashboard & Disposal Alerts)
 ```
 
 ## 🚀 Future Roadmap
-1. **E-Pharmacy Integration**: Direct refill requests via certified pharmacy partners based on tracked inventory levels.
-2. **Poyo-Rider Fleet**: A crowdsourced or partner-based pickup network for "Recycle-First" collection bags.
-3. **Advanced Interaction DB**: Expanding the AI's clinical knowledge base to include traditional and herbal medicine interactions.
+1. **Pharmacy & Hospital Partnerships**: Integrate with local pharmacies and clinics for seamless medication pickup, verification, and recycling.
+2. **Expanded AI Features**: Add predictive health alerts, personalized dosage recommendations, and deeper interaction checks.
+3. **Data Insights & Research**: Use anonymized data to identify waste trends, improve health outcomes, and guide sustainability policies.
 
 ## 🧠 Challenges & Learnings
 - **The "Accuracy Gap"**: We discovered that hospital medicine labels often omit clear expiry dates. We overcame this by training our Gemini prompt logic to "infer" safety windows from dispense dates and local pharmaceutical standards.
