@@ -22,9 +22,10 @@ import { auth, db } from '../firebase';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { cancelMedicationReminders } from '../utils/notificationUtils';
 
-const { width } = Dimensions.get('window');
+
 
 export default function RequestRecycleScreen() {
+    const { width } = useWindowDimensions();
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
@@ -473,7 +474,7 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     pointCard: {
-        width: (width - 50) / 2,
+        width: '47%',
         padding: 15,
         borderRadius: 20,
         alignItems: 'center',
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
     footer: {
         position: 'absolute',
         bottom: 0,
-        width: width,
+        width: '100%',
         padding: 20,
         paddingBottom: Platform.OS === 'ios' ? 40 : 20,
         flexDirection: 'row',

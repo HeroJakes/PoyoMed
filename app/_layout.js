@@ -1,12 +1,13 @@
+import { DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef } from 'react';
-import { StatusBar } from 'react-native';
+import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 import { registerForPushNotificationsAsync, setupNotificationCategories, setupNotificationHandler } from '../utils/notificationUtils';
 
-import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { ThemeProvider } from '../context/ThemeContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -14,10 +15,18 @@ SplashScreen.preventAutoHideAsync();
 // Initialize notification handler
 setupNotificationHandler();
 
+// Force light theme for React Navigation
+const LightNavTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: '#FFFBF7',
+  },
+};
+
 function InnerLayout() {
   const router = useRouter();
   const responseListener = useRef();
-  const { theme } = useTheme();
 
   useEffect(() => {
     SplashScreen.hideAsync();
@@ -36,8 +45,6 @@ function InnerLayout() {
         // Navigate to medicine details
         if (data.medicineId) {
           router.push('/(tabs)/medicines');
-          // In a real app, we would mark it as taken in the database here.
-          // For now, we'll just show a confirmation.
           setTimeout(() => {
             alert(`Marked ${data.medicineName || 'medicine'} as taken!`);
           }, 500);
@@ -71,8 +78,8 @@ function InnerLayout() {
   }, []);
 
   return (
-    <>
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
+    <NavThemeProvider value={LightNavTheme}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFBF7" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -82,14 +89,41 @@ function InnerLayout() {
         <Stack.Screen name="medicine-details" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
-    </>
+    </NavThemeProvider>
   );
 }
 
 export default function RootLayout() {
+  // On web: center the app in a max-width container so it doesn't stretch across the full desktop
+  if (Platform.OS === 'web') {
+    return (
+      <ThemeProvider>
+        <View style={styles.webWrapper}>
+          <View style={styles.webContainer}>
+            <InnerLayout />
+          </View>
+        </View>
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider>
       <InnerLayout />
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  webWrapper: {
+    flex: 1,
+    backgroundColor: '#E8E0D8',
+    alignItems: 'center',
+  },
+  webContainer: {
+    width: '100%',
+    maxWidth: 430,
+    flex: 1,
+    overflow: 'hidden',
+  },
+});

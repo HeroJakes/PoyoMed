@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Dimensions, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../../constants/theme';
@@ -12,9 +12,8 @@ import { medicineService } from '../../services/medicineService';
 import { getNextDose } from '../../utils/medicineUtils';
 import { getRiskMetadata } from '../../utils/riskClassification';
 
-const { width, height } = Dimensions.get('window');
-
 export default function Medicines() {
+    const { width } = useWindowDimensions();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
     const gradients = ThemeGradients[colorScheme];

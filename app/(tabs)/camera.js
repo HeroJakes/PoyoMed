@@ -26,8 +26,8 @@ import { Colors, Gradients } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { askGemini } from '../../services/aiService';
 
-const { width, height } = Dimensions.get('window');
-const SCAN_AREA_SIZE = width * 0.7;
+
+const SCAN_AREA_SIZE = 280;
 
 export default function CameraScreen() {
     const [permission, requestPermission] = useCameraPermissions();

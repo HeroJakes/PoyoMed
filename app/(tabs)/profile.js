@@ -24,7 +24,7 @@ import { Colors, ThemeGradients } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { auth, db } from '../../firebase';
 
-const { width } = Dimensions.get('window');
+
 
 export default function ProfileScreen() {
     const router = useRouter();

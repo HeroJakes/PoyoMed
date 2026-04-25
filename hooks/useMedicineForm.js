@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { getMedicineTips } from '../services/aiService';
 import { medicineService } from '../services/medicineService';
 
@@ -126,22 +126,37 @@ export function useMedicineForm(initialMedicine, scannedData) {
 
             if (result.needsConfirmation) {
                 setIsLoading(false);
-                Alert.alert(
-                    'Drug Interaction Warning',
-                    result.interaction.warningMessage + '\n\n' + result.interaction.reason + '\n\nDo you still want to add this medicine?',
-                    [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Add Anyway', style: 'destructive', onPress: () => handleSave(isEdit, true) }
-                    ]
-                );
+                if (Platform.OS === 'web') {
+                    const confirmed = window.confirm(result.interaction.warningMessage + '\n\n' + result.interaction.reason + '\n\nDo you still want to add this medicine?');
+                    if (confirmed) handleSave(isEdit, true);
+                } else {
+                    Alert.alert(
+                        'Drug Interaction Warning',
+                        result.interaction.warningMessage + '\n\n' + result.interaction.reason + '\n\nDo you still want to add this medicine?',
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Add Anyway', style: 'destructive', onPress: () => handleSave(isEdit, true) }
+                        ]
+                    );
+                }
                 return;
             }
 
-            Alert.alert('Success', `Medicine ${isEdit ? 'updated' : 'added'} successfully`);
-            router.back();
+            if (Platform.OS === 'web') {
+                window.alert(`Medicine ${isEdit ? 'updated' : 'added'} successfully`);
+                router.replace('/(tabs)/medicines');
+            } else {
+                Alert.alert('Success', `Medicine ${isEdit ? 'updated' : 'added'} successfully`, [
+                    { text: 'OK', onPress: () => router.replace('/(tabs)/medicines') }
+                ]);
+            }
         } catch (error) {
             console.error(error);
-            Alert.alert('Error', 'Failed to save medicine');
+            if (Platform.OS === 'web') {
+                window.alert('Failed to save medicine');
+            } else {
+                Alert.alert('Error', 'Failed to save medicine');
+            }
         } finally {
             setIsLoading(false);
         }

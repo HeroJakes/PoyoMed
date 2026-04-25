@@ -23,7 +23,7 @@ import { Colors, ThemeGradients } from '../constants/theme';
 import { auth, db } from '../firebase';
 import { useColorScheme } from '../hooks/use-color-scheme';
 
-const { width } = Dimensions.get('window');
+
 
 export default function PersonalInfoScreen() {
     const router = useRouter();

@@ -31,7 +31,7 @@ import { Colors, ThemeGradients } from '../constants/theme';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { authService } from '../services/authService';
 
-const { width, height } = Dimensions.get('window');
+
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 

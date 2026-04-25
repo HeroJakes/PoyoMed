@@ -33,7 +33,7 @@ import { auth, db } from '../../firebase';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { cancelMedicationReminders } from '../../utils/notificationUtils';
 
-const { width } = Dimensions.get('window');
+
 
 // Haversine formula to calculate distance between two points in km
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -600,7 +600,6 @@ export default function ImpactScreen() {
 }
 
 function NotificationPopup({ visible, onClose, notifications, onClearAll, theme, gradients }) {
-    const { height } = Dimensions.get('window');
     return (
         <Modal
             visible={visible}
@@ -1146,7 +1145,7 @@ const styles = StyleSheet.create({
         paddingRight: 20,
     },
     tipCard: {
-        width: width * 0.4,
+        width: 160,
         padding: 16,
         borderRadius: 24,
         marginRight: 12,

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, ThemeGradients } from '../constants/theme';
 import { auth } from '../firebase';
@@ -11,10 +11,11 @@ import { medicineService } from '../services/medicineService';
 import { getNextDose, isExpired } from '../utils/medicineUtils';
 import { getRiskMetadata } from '../utils/riskClassification';
 
-const { width } = Dimensions.get('window');
+
 
 export default function MedicineDetails() {
     const router = useRouter();
+    const { width } = useWindowDimensions();
     const params = useLocalSearchParams();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
@@ -37,28 +38,45 @@ export default function MedicineDetails() {
 
     const handleDelete = () => {
         setMenuVisible(false);
-        Alert.alert(
-            "Delete Medicine",
-            "Are you sure you want to delete this medicine? This action cannot be undone.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await medicineService.deleteMedicine(medicine.id);
-                            Alert.alert("Success", "Medicine deleted successfully", [
-                                { text: "OK", onPress: () => router.replace('/(tabs)/medicines') }
-                            ]);
-                        } catch (error) {
-                            console.error("Error deleting medicine:", error);
-                            Alert.alert("Error", "Failed to delete medicine");
-                        }
-                    }
+
+        const executeDelete = async () => {
+            try {
+                await medicineService.deleteMedicine(medicine.id);
+                if (Platform.OS === 'web') {
+                    window.alert("Medicine deleted successfully");
+                    router.replace('/(tabs)/medicines');
+                } else {
+                    Alert.alert("Success", "Medicine deleted successfully", [
+                        { text: "OK", onPress: () => router.replace('/(tabs)/medicines') }
+                    ]);
                 }
-            ]
-        );
+            } catch (error) {
+                console.error("Error deleting medicine:", error);
+                if (Platform.OS === 'web') {
+                    window.alert("Failed to delete medicine");
+                } else {
+                    Alert.alert("Error", "Failed to delete medicine");
+                }
+            }
+        };
+
+        if (Platform.OS === 'web') {
+            const confirmed = window.confirm("Are you sure you want to delete this medicine? This action cannot be undone.");
+            if (confirmed) executeDelete();
+        } else {
+            Alert.alert(
+                "Delete Medicine",
+                "Are you sure you want to delete this medicine? This action cannot be undone.",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: executeDelete
+                    }
+                ]
+            );
+        }
     };
 
     if (!medicine) {
@@ -433,7 +451,7 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     infoCard: {
-        width: (width - 55) / 2,
+        width: '48%',
         padding: 15,
         borderRadius: 20,
         marginBottom: 15,

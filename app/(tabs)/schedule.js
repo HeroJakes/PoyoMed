@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View
 } from 'react-native';
 import Animated, {
@@ -24,9 +25,11 @@ import { medicineService } from '../../services/medicineService';
 import { getNextDose, isExpired, isNextDoseToday } from '../../utils/medicineUtils';
 import { getRiskMetadata } from '../../utils/riskClassification';
 
-const { width, height } = Dimensions.get('window');
+
+
 
 export default function ScheduleScreen() {
+  const { width } = useWindowDimensions();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const gradients = ThemeGradients[colorScheme];
@@ -171,7 +174,7 @@ export default function ScheduleScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.horizontalScroll}
-              snapToInterval={width * 0.7 + 15}
+              snapToInterval={(width * 0.45) + 15}
               decelerationRate="fast"
             >
               {todaysMedicines.length > 0 ? (
@@ -181,6 +184,7 @@ export default function ScheduleScreen() {
                     medicine={med}
                     theme={theme}
                     router={router}
+                    width={width}
                   />
                 ))
               ) : (
@@ -227,8 +231,8 @@ export default function ScheduleScreen() {
             entering={FadeInDown.delay(600).duration(500).easing(Easing.out(Easing.exp))}
             style={styles.statsRow}
           >
-            <StatItem label="Total Medicines" value={todaysMedicines.length.toString()} icon="medical" color="#82C91E" theme={theme} />
-            <StatItem label="Expiring" value={expiringMedicines.length.toString()} icon="alert-circle" color="#FF8C42" theme={theme} />
+            <StatItem label="Total Medicines" value={todaysMedicines.length.toString()} icon="medical" color="#82C91E" theme={theme} width={width} />
+            <StatItem label="Expiring" value={expiringMedicines.length.toString()} icon="alert-circle" color="#FF8C42" theme={theme} width={width} />
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
@@ -236,10 +240,10 @@ export default function ScheduleScreen() {
   );
 }
 
-function ScheduleCard({ medicine, theme, router }) {
+function ScheduleCard({ medicine, theme, router, width }) {
   return (
     <TouchableOpacity
-      style={[styles.scheduleCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+      style={[styles.scheduleCard, { width: width * 0.45, backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
       onPress={() => router.push({
         pathname: '/medicine-details',
         params: { medicine: JSON.stringify(medicine) }
@@ -290,9 +294,9 @@ function ExpiringItem({ title, days, icon, color, theme, onRecycle }) {
   );
 }
 
-function StatItem({ label, value, icon, color, theme }) {
+function StatItem({ label, value, icon, color, theme, width }) {
   return (
-    <View style={[styles.statItem, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
+    <View style={[styles.statItem, { width: (width - 55) / 2, backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
       <View style={styles.statHeader}>
         <Ionicons name={icon} size={18} color={color} />
         <Text style={[styles.statLabel, { color: theme.icon }]}>{label}</Text>
@@ -358,7 +362,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     fontSize: 14,
     lineHeight: 20,
-    width: width * 0.55,
+    width: '55%',
   },
   heroButton: {
     paddingVertical: 10,
@@ -392,7 +396,6 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   scheduleCard: {
-    width: width * 0.45,
     padding: 20,
     borderRadius: 25,
     marginRight: 15,
@@ -528,7 +531,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   statItem: {
-    width: (width - 55) / 2,
+    width: '48%',
     padding: 20,
     borderRadius: 25,
     ...Platform.select({

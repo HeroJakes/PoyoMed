@@ -54,7 +54,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
         {/* Sliding Pill Background */}
         <Animated.View style={[
           styles.slidingPill,
-          { backgroundColor: colorScheme === 'dark' ? theme.primary : '#2D2D2D' },
+          { backgroundColor: theme.primary },
           animatedPillStyle
         ]} />
 
